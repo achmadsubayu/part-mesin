@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-15T07:35:20.986Z",
+  "updatedAt": "2026-11-15T07:36:54.156Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -42,6 +42,18 @@
           "part_68_Solid1 16",
           "part_222_Solid1 50",
           "part_183_Solid1 35"
+        ]
+      },
+      {
+        "groupId": "group_1794728214156",
+        "name": "Air Cylinder SC 80 x 200",
+        "partKeys": [
+          "part_190_Solid1 398",
+          "part_189_Solid1 397",
+          "part_191_Solid1 399",
+          "part_192_Solid1 251",
+          "part_197_Solid1 345",
+          "part_193_Solid1 252"
         ]
       }
     ]
