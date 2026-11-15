@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-15T07:20:48.225Z",
+  "updatedAt": "2026-11-15T07:22:18.952Z",
   "customNames": {},
   "customGroups": {
     "TW406_keseluruhan.glb": [
@@ -13,6 +13,18 @@
           "part_87_Solid1 314",
           "part_84_Solid1 384",
           "part_82_Solid1 382"
+        ]
+      },
+      {
+        "groupId": "group_1794727338952",
+        "name": "Air Cylinder SC 160 x 600",
+        "partKeys": [
+          "part_75_Solid1 383",
+          "part_74_Solid1 382",
+          "part_76_Solid1 384",
+          "part_78_Solid1 181",
+          "part_79_Solid1 311",
+          "part_80_Solid1 312"
         ]
       }
     ]
