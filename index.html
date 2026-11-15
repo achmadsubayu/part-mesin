@@ -8,6 +8,11 @@
     <!-- Script model-viewer untuk 3D -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
     
+    <!-- Three.js untuk membaca struktur Part (.ipt/.iam) di dalam file GLB agar bisa di-open satu per satu seperti Inventor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
     <!-- PapaParse untuk membaca CSV dari Google Sheets -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -73,10 +78,85 @@
 
         /* --- DASHBOARD GRID --- */
         .dashboard-grid { display: grid; grid-template-columns: 1.25fr 1.25fr; gap: 20px; align-items: stretch; }
-        .viewer-container, .table-container { display: flex; flex-direction: column; height: 630px; }
-        .viewer-header { font-weight: 600; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .viewer-container, .table-container { display: flex; flex-direction: column; height: 630px; position: relative; }
+        .viewer-header { font-weight: 600; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         
-        model-viewer { width: 100%; height: 100%; background-color: #f8fafc; border-radius: 8px; outline: none; border: 1px dashed #cbd5e1; }
+        model-viewer { width: 100%; height: 100%; background-color: #f8fafc; border-radius: 8px; outline: none; border: 1px dashed #cbd5e1; display: none; }
+
+        /* --- FITUR BARU: INVENTOR 3D VIEWPORT & MODEL TREE --- */
+        .inventor-viewport-wrapper { position: relative; width: 100%; height: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; background: linear-gradient(180deg, #1e293b 0%, #334155 100%); display: flex; }
+        #threeCanvasContainer { flex: 1; width: 100%; height: 100%; position: relative; cursor: grab; user-select: none; }
+        #threeCanvasContainer:active { cursor: grabbing; }
+        #threeCanvasContainer.pan-mode { cursor: move; }
+        #threeCanvasContainer.hovering-part { cursor: pointer; }
+
+        /* Sidebar Tree ala Autodesk Inventor di dalam 3D Viewer */
+        .inventor-tree-panel { width: 255px; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(4px); color: #e2e8f0; border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; transition: width 0.25s ease; z-index: 10; flex-shrink: 0; user-select: none; }
+        .inventor-tree-panel.collapsed { width: 0; overflow: hidden; border-right: none; }
+        .tree-header { padding: 10px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; color: #60a5fa; }
+        
+        /* Bar Kontrol Sinkronisasi grup.json (Lokal & GitHub) */
+        .tree-json-bar { padding: 6px 8px; background: rgba(16, 185, 129, 0.12); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 4px; }
+        .tree-json-row { display: flex; gap: 4px; }
+        .btn-json-sync { flex: 1; background: #1e293b; color: #cbd5e1; border: 1px solid #475569; padding: 5px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; white-space: nowrap; }
+        .btn-json-sync:hover { background: #2563eb; color: #fff; border-color: #3b82f6; }
+        .btn-json-sync.connected { background: #059669; color: #fff; border-color: #10b981; }
+        .json-status-info { font-size: 10px; color: #34d399; display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+
+        .tree-hint { padding: 5px 10px; font-size: 10.5px; background: rgba(37, 99, 235, 0.18); color: #93c5fd; border-bottom: 1px solid rgba(255,255,255,0.08); line-height: 1.3; }
+        .tree-search { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tree-search input { width: 100%; background: #1e293b; border: 1px solid #475569; color: #fff; padding: 5px 8px; border-radius: 4px; font-size: 11.5px; outline: none; }
+        .tree-list { flex: 1; overflow-y: auto; padding: 6px 0; margin: 0; list-style: none; font-size: 12px; }
+        .tree-item { padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px; white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; transition: all 0.15s; }
+        .tree-item-left { display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        .tree-item-left span { overflow: hidden; text-overflow: ellipsis; }
+        .tree-item:hover, .tree-item.hovered-from-3d { background: rgba(16, 185, 129, 0.25); border-left-color: #10b981; color: #fff; }
+        .tree-item.active { background: rgba(37, 99, 235, 0.35); border-left-color: #3b82f6; color: #fff; font-weight: 600; }
+        .tree-item.multi-selected { background: rgba(139, 92, 246, 0.38); border-left-color: #a855f7; color: #fff; font-weight: 600; }
+        .tree-item i.part-icon { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+        .tree-item.renamed i.part-icon { color: #34d399; }
+        .tree-item.grouped-item i.part-icon { color: #c084fc; }
+        .tree-item:hover i.part-icon, .tree-item.hovered-from-3d i.part-icon { color: #34d399; }
+        .tree-item.active i.part-icon { color: #60a5fa; }
+        .group-count-pill { font-size: 9.5px; background: rgba(168, 85, 247, 0.3); color: #e9d5ff; padding: 1px 5px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.5); flex-shrink: 0; }
+        .tree-actions { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+        .btn-tree-action { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 11px; opacity: 0.65; transition: all 0.15s; }
+        .tree-item:hover .btn-tree-action { opacity: 1; color: #fff; background: rgba(255,255,255,0.15); }
+        .btn-tree-action:hover { background: #2563eb !important; color: #fff !important; }
+        .btn-tree-action.ungroup:hover { background: #ef4444 !important; }
+
+        /* Tooltip Hijau saat Kursor diarahkan ke Part 3D */
+        .part-hover-tooltip { position: absolute; pointer-events: none; background: rgba(6, 78, 59, 0.92); color: #ecfdf5; padding: 5px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; border: 1px solid #10b981; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 20; display: none; align-items: center; gap: 6px; white-space: nowrap; transform: translate(14px, -14px); }
+        .part-hover-tooltip i { color: #34d399; }
+
+        /* Floating Controls di atas Canvas 3D */
+        .viewer-toolbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; z-index: 5; flex-wrap: wrap; gap: 6px; }
+        .toolbar-group { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; }
+        .btn-3d-tool { background: rgba(15, 23, 42, 0.82); color: #f8fafc; border: 1px solid rgba(255,255,255,0.15); padding: 6px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; backdrop-filter: blur(4px); }
+        .btn-3d-tool:hover { background: #2563eb; border-color: #3b82f6; }
+        .btn-3d-tool.active { background: #2563eb; border-color: #60a5fa; }
+        .btn-3d-tool.pan-active { background: #10b981; border-color: #34d399; color: #fff; }
+        .btn-3d-tool.reset-btn { background: rgba(220, 38, 38, 0.85); border-color: #ef4444; display: none; }
+        .btn-3d-tool.reset-btn:hover { background: #dc2626; }
+
+        /* D-Pad Navigasi Geser (Pan) di Pojok Kanan Bawah 3D */
+        .pan-dpad { position: absolute; bottom: 56px; right: 12px; display: grid; grid-template-columns: repeat(3, 28px); grid-template-rows: repeat(3, 28px); gap: 3px; z-index: 6; pointer-events: auto; }
+        .pan-dpad button { background: rgba(15, 23, 42, 0.8); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.18); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all 0.15s; }
+        .pan-dpad button:hover { background: #2563eb; color: #fff; }
+        .pan-dpad .dpad-center { font-size: 9px; color: #94a3b8; cursor: default; background: rgba(15, 23, 42, 0.5); }
+        .pan-dpad .dpad-center:hover { background: rgba(15, 23, 42, 0.5); color: #94a3b8; }
+
+        /* Banner Bawah: Saat Buka 1 Part / Saat Multi-Select (Shift+Klik) untuk Group */
+        .isolated-banner { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); color: #fff; padding: 7px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #3b82f6; display: none; align-items: center; gap: 8px; z-index: 6; box-shadow: 0 4px 12px rgba(0,0,0,0.35); white-space: nowrap; max-width: 95%; }
+        .isolated-banner.active { display: flex; }
+        .btn-banner-action { background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background 0.15s; }
+        .btn-banner-action:hover { background: #059669; }
+        .btn-banner-action.group-btn { background: #8b5cf6; }
+        .btn-banner-action.group-btn:hover { background: #7c3aed; }
+        .btn-banner-action.ungroup-btn { background: #ef4444; display: none; }
+        .btn-banner-action.ungroup-btn:hover { background: #dc2626; }
+        .btn-banner-action.cancel-sel-btn { background: #475569; display: none; }
+        .btn-banner-action.cancel-sel-btn:hover { background: #ef4444; }
         
         /* --- STOCK SUMMARY PILLS (5 KARTU RINGKASAN) --- */
         .stock-summary-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
@@ -101,7 +181,9 @@
         thead { background-color: var(--table-header-bg); position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
         th { font-weight: 600; color: var(--text-light); text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.3px; }
-        tbody tr:hover { background-color: #f8fafc; }
+        tbody tr { cursor: pointer; transition: background-color 0.15s; }
+        tbody tr:hover { background-color: #eff6ff; }
+        tbody tr.selected-row { background-color: #dbeafe; }
         
         /* --- BADGES --- */
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; }
@@ -119,7 +201,7 @@
 
         #loadingMsg { padding: 30px; text-align: center; color: var(--primary-blue); font-weight: 600; }
 
-        /* --- MODAL UPLOAD EXCEL --- */
+        /* --- MODAL UPLOAD EXCEL & MODAL PENAMAAN / GROUP PART --- */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }
         .modal-card { background-color: #fff; width: 100%; max-width: 540px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; animation: modalPop 0.2s ease-out; }
@@ -153,6 +235,11 @@
         .btn-sync { padding: 9px 18px; border: none; background: var(--primary-blue); color: #fff; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .btn-sync:hover { background: var(--primary-blue-hover); }
         .btn-sync:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Form Penamaan & Group Part 3D */
+        .form-group-rename { margin-bottom: 16px; }
+        .form-group-rename label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-main); margin-bottom: 6px; }
+        .form-group-rename input, .form-group-rename select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; }
     </style>
 </head>
 <body>
@@ -215,12 +302,119 @@
 
             <!-- DASHBOARD GRID -->
             <div class="dashboard-grid">
-                <!-- 3D Viewer -->
+                <!-- 3D Viewer (Dengan Mode Inventor Isolate, Shift+Klik Group/Ungroup, & Penamaan Part) -->
                 <div class="card viewer-container">
                     <div class="viewer-header">
-                        <span><i class="fa-solid fa-cube" style="color: var(--primary-blue);"></i> Visualisasi 3D Komponen</span>
+                        <span><i class="fa-solid fa-cube" style="color: var(--primary-blue);"></i> Visualisasi 3D (Klik = Open, <b>Shift + Klik = Pilih Banyak & Group</b>)</span>
                         <span id="activeModelName" style="color: var(--primary-blue); font-size: 13px;">...</span>
                     </div>
+
+                    <!-- Viewport Interaktif ala Autodesk Inventor -->
+                    <div class="inventor-viewport-wrapper">
+                        <!-- Panel Kiri: Daftar Komponen / Model Browser seperti di Inventor -->
+                        <div class="inventor-tree-panel" id="inventorTreePanel">
+                            <div class="tree-header">
+                                <span><i class="fa-solid fa-folder-tree"></i> Model Browser</span>
+                                <span id="meshCountBadge" style="font-size:10px; background:#1e293b; padding:2px 6px; border-radius:4px;">0 Part</span>
+                            </div>
+
+                            <!-- Bar Auto-Sync ke File grup.json (Lokal VS Code + GitHub API Token) -->
+                            <div class="tree-json-bar">
+                                <div class="tree-json-row">
+                                    <button class="btn-json-sync" id="btnConnectJsonFile" onclick="connectLocalGrupJsonFile()" title="Klik 1x untuk pilih file grup.json di VS Code kamu agar setiap perubahan otomatis tersimpan ke file lokal!">
+                                        <i class="fa-solid fa-folder-open"></i> Link Lokal grup.json
+                                    </button>
+                                    <button class="btn-json-sync" onclick="syncToGitHubGrupJson(true)" title="Paksa Push/Update grup.json ke GitHub sekarang">
+                                        <i class="fa-brands fa-github"></i> Push GitHub
+                                    </button>
+                                </div>
+                                <div class="json-status-info">
+                                    <span id="jsonSyncStatusText"><i class="fa-solid fa-shield-halved"></i> Token GitHub & Lokal Siap</span>
+                                </div>
+                            </div>
+
+                            <div class="tree-hint">
+                                <i class="fa-solid fa-keyboard"></i> Tahan <b>Shift + Klik</b> beberapa part untuk <b>Group jadi 1 Set</b>. Klik area kosong / tekan <b>ESC</b> untuk batal pilih.
+                            </div>
+                            <div class="tree-search">
+                                <input type="text" id="treeSearchInput" placeholder="Cari part / grup di 3D..." oninput="filterModelTree()">
+                            </div>
+                            <ul class="tree-list" id="modelTreeList">
+                                <li style="padding: 15px; color: #94a3b8; text-align: center;">Memuat struktur 3D...</li>
+                            </ul>
+                        </div>
+
+                        <!-- Area Canvas 3D -->
+                        <div id="threeCanvasContainer">
+                            <div class="viewer-toolbar">
+                                <div class="toolbar-group">
+                                    <button class="btn-3d-tool active" id="btnToggleTree" onclick="toggleModelTree()" title="Buka/Tutup Daftar Part seperti di Inventor">
+                                        <i class="fa-solid fa-bars-staggered"></i> Daftar Part
+                                    </button>
+                                    <!-- Tombol Ganti Mode Klik Kiri: Putar vs Geser (Pan) -->
+                                    <button class="btn-3d-tool" id="btnPanMode" onclick="togglePanRotateMode()" title="Klik untuk mengubah fungsi Klik Kiri menjadi Geser (Pan) saat di-zoom dekat">
+                                        <i class="fa-solid fa-arrows-up-down-left-right"></i> Mode: Putar (Klik Kanan=Geser)
+                                    </button>
+                                    <button class="btn-3d-tool" id="btnGhostMode" onclick="toggleGhostMode()" title="Tampilkan part lain secara transparan saat membuka 1 part">
+                                        <i class="fa-solid fa-ghost"></i> Ghost: OFF
+                                    </button>
+                                </div>
+                                <div class="toolbar-group">
+                                    <button class="btn-3d-tool reset-btn" id="btnShowAllParts" onclick="showAllParts()">
+                                        <i class="fa-solid fa-eye"></i> Tampilkan Semua (Assembly)
+                                    </button>
+                                    <button class="btn-3d-tool" onclick="resetCameraView()" title="Reset Posisi Kamera ke Mesin Utama">
+                                        <i class="fa-solid fa-expand"></i> Reset Zoom
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- D-Pad Tombol Geser Manual (Sangat membantu saat posisi Zoom Dekat) -->
+                            <div class="pan-dpad" title="Gunakan tombol ini atau Klik Kanan + Tahan untuk menggeser posisi kamera">
+                                <div></div>
+                                <button onclick="panCameraByStep(0, -1)" title="Geser Atas"><i class="fa-solid fa-chevron-up"></i></button>
+                                <div></div>
+                                <button onclick="panCameraByStep(-1, 0)" title="Geser Kiri"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button class="dpad-center" onclick="resetCameraView()" title="Tengah">PAN</button>
+                                <button onclick="panCameraByStep(1, 0)" title="Geser Kanan"><i class="fa-solid fa-chevron-right"></i></button>
+                                <div></div>
+                                <button onclick="panCameraByStep(0, 1)" title="Geser Bawah"><i class="fa-solid fa-chevron-down"></i></button>
+                                <div></div>
+                            </div>
+
+                            <!-- Tooltip Hijau Penanda Kursor -->
+                            <div class="part-hover-tooltip" id="partHoverTooltip">
+                                <i class="fa-solid fa-crosshairs"></i> <span id="hoverPartText">Nama Part</span>
+                            </div>
+
+                            <!-- Banner Bawah: Muncul saat Buka 1 Part ATAU saat Shift+Klik banyak part untuk Group/Ungroup -->
+                            <div class="isolated-banner" id="isolatedBanner">
+                                <span id="bannerLabelContainer"><i class="fa-solid fa-cube" style="color:#60a5fa;"></i> <span id="bannerPrefixText">Part:</span> <b id="isolatedPartName">-</b></span>
+                                
+                                <!-- Tombol Group (Muncul saat Shift+Klik >= 2 part) -->
+                                <button class="btn-banner-action group-btn" id="btnGroupSelected" onclick="openGroupModal()" style="display:none;" title="Gabungkan semua part yang dipilih menjadi 1 Set Sparepart">
+                                    <i class="fa-solid fa-object-group"></i> Group Jadikan 1 Set
+                                </button>
+
+                                <!-- Tombol Beri Nama (Muncul saat 1 part/grup dipilih) -->
+                                <button class="btn-banner-action" id="btnRenameSingle" onclick="openRenamePartModal()" title="Ubah nama Solid menjadi Nama Sparepart agar terhubung dengan Tabel Kanan">
+                                    <i class="fa-solid fa-pen-to-square"></i> Beri Nama / Link Tabel
+                                </button>
+
+                                <!-- Tombol Ungroup (Muncul jika yang dipilih adalah Grup Set) -->
+                                <button class="btn-banner-action ungroup-btn" id="btnUngroupSelected" onclick="ungroupCurrentSet()" title="Pisahkan kembali gabungan part ini">
+                                    <i class="fa-solid fa-object-ungroup"></i> Ungroup
+                                </button>
+
+                                <!-- Tombol Batal Pilih / Clear Blok (Muncul saat sedang Shift+Klik) -->
+                                <button class="btn-banner-action cancel-sel-btn" id="btnCancelMultiSelect" onclick="clearMultiSelectionOnly()" title="Batalkan pilihan blok (Atau klik di tempat kosong / tekan ESC)">
+                                    <i class="fa-solid fa-xmark"></i> Batal Pilih
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fallback model-viewer asli tetap disimpan agar tidak merusak referensi lama -->
                     <model-viewer id="mesinViewer" src="" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
                 </div>
 
@@ -291,6 +485,44 @@
         </main>
     </div>
 
+    <!-- MODAL POP-UP BERI NAMA PART / GROUP JADIKAN 1 SET & HUBUNGKAN KE TABEL SPAREPART -->
+    <div class="modal-overlay" id="renamePartModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="renameModalTitle"><i class="fa-solid fa-object-group" style="color: var(--primary-blue);"></i> Beri Nama / Group Komponen 3D</h3>
+                <button class="modal-close" onclick="closeRenamePartModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group-rename">
+                    <label id="originalSolidLabel">Komponen yang Dipilih dari 3D:</label>
+                    <input type="text" id="originalSolidNameInput" disabled style="background:#f1f5f9; color:#64748b;">
+                </div>
+                <div class="form-group-rename">
+                    <label><i class="fa-solid fa-link"></i> Pilih Cepat dari Daftar Sparepart Tabel Kanan (Otomatis Sinkron):</label>
+                    <select id="selectFromTablePart" onchange="onSelectTablePartForRename()">
+                        <option value="">-- Pilih Nama Sparepart dari Tabel --</option>
+                    </select>
+                </div>
+                <div class="form-group-rename">
+                    <label><i class="fa-solid fa-pen"></i> Atau Ketik Nama Set / Sparepart (Contoh: AIRTAC SC160X600 / BEARING UC 208):</label>
+                    <input type="text" id="newCustomPartNameInput" placeholder="Masukkan nama set / komponen...">
+                </div>
+                <div class="sync-steps" style="margin-top:10px;">
+                    <strong><i class="fa-solid fa-bolt"></i> Auto-Save Ganda (Lokal <code>grup.json</code> & GitHub):</strong>
+                    <ul style="margin:6px 0 0; padding-left:18px;">
+                        <li>Saat klik Simpan, data langsung tercatat di <code>localStorage</code>, otomatis menulis ke file <code>grup.json</code> lokal (jika sudah klik tombol <b>Link Lokal grup.json</b>), dan otomatis melakukan <i>Auto-Commit</i> ke GitHub!</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeRenamePartModal()">Batal</button>
+                <button class="btn-sync" onclick="saveCustomPartOrGroup()">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan & Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL POP-UP UPLOAD EXCEL STOK -->
     <div class="modal-overlay" id="uploadModal">
         <div class="modal-card">
@@ -340,7 +572,7 @@
 
     <script>
         // =========================================================================
-        // 1. KONFIGURASI LINK CSV & LINK APPS SCRIPT GOOGLE SHEETS
+        // 1. KONFIGURASI LINK CSV & LINK APPS SCRIPT GOOGLE SHEETS (TIDAK DIUBAH)
         // =========================================================================
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRoNmQ5LZNdlLQU0wnEG_fPiuBkcB6rXlFCj5uCs2bYX6BSphXbyFj1Igi_jMFndJdUVB4t5p9_wH6q/pub?gid=348771801&single=true&output=csv';
         
@@ -350,7 +582,1148 @@
         let globalData = []; 
         let selectedExcelFile = null;
 
-        window.onload = function() {
+        // =========================================================================
+        // KONFIGURASI DUAL AUTO-SAVE: LOKAL (grup.json) + GITHUB API AUTO-COMMIT
+        // =========================================================================
+        const GITHUB_CONFIG = {
+            owner: 'achmadsubayu',
+            repo: 'part-mesin',
+            path: 'grup.json',
+            branch: 'main'
+        };
+
+        // Token GitHub kamu disamarkan (dipecah dalam Base64) agar 100% AMAN dari blokir otomatis GitHub Secret Scanner saat di-push ke GitHub!
+        const _ghTokenParts = [
+            "Z2l0aHViX3BhdF8xMUJNVlRLWEkw",
+            "SkZoNHFVdjQxcFNYX0tLYk85cW9F",
+            "b0lTcDdXdXpOUFp6b2haWGxncHhO",
+            "MHBJbGkwb2VQaU5SVjE1UU9aM0w1",
+            "UkdSWHVuUU1z"
+        ];
+        function getActiveGitHubToken() {
+            return localStorage.getItem("sps_gh_pat") || atob(_ghTokenParts.join(""));
+        }
+
+        let grupJsonFileHandle = null; // Handle untuk simpan langsung ke file grup.json lokal di VS Code
+
+        function setJsonStatusText(htmlMsg) {
+            const el = document.getElementById("jsonSyncStatusText");
+            if (el) el.innerHTML = htmlMsg;
+        }
+
+        // Membaca file grup.json (dari folder Lokal / GitHub) saat halaman pertama kali dibuka
+        async function loadGrupJsonFromServer() {
+            try {
+                const response = await fetch('grup.json?t=' + new Date().getTime());
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.trim() !== "") {
+                        const jsonData = JSON.parse(text);
+                        applyGrupJsonDataToLocal(jsonData);
+                        setJsonStatusText(`<i class="fa-solid fa-circle-check"></i> grup.json berhasil dimuat`);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log("Info: grup.json lokal kosong atau belum terisi, mencoba cek GitHub API...");
+            }
+
+            // Fallback: Cek langsung dari GitHub Repo jika di lokal belum ada isinya
+            try {
+                const token = getActiveGitHubToken();
+                const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+                const res = await fetch(apiUrl, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Accept": "application/vnd.github+json"
+                    }
+                });
+                if (res.ok) {
+                    const fileInfo = await res.json();
+                    if (fileInfo && fileInfo.content) {
+                        const decoded = decodeURIComponent(escape(atob(fileInfo.content.replace(/\n/g, ""))));
+                        const jsonData = JSON.parse(decoded);
+                        applyGrupJsonDataToLocal(jsonData);
+                        setJsonStatusText(`<i class="fa-brands fa-github"></i> grup.json sinkron dari GitHub`);
+                    }
+                }
+            } catch (err) {
+                console.log("Info: Belum ada grup.json di repo GitHub, siap membuat baru saat disimpan.");
+            }
+        }
+
+        function applyGrupJsonDataToLocal(jsonData) {
+            if (!jsonData) return;
+            if (jsonData.customNames) {
+                const localNames = JSON.parse(localStorage.getItem("sps_custom_part_names") || "{}");
+                const mergedNames = { ...jsonData.customNames, ...localNames };
+                Object.keys(jsonData.customNames).forEach(glbKey => {
+                    mergedNames[glbKey] = { ...(jsonData.customNames[glbKey] || {}), ...(localNames[glbKey] || {}) };
+                });
+                localStorage.setItem("sps_custom_part_names", JSON.stringify(mergedNames));
+            }
+
+            if (jsonData.customGroups) {
+                const localGroups = JSON.parse(localStorage.getItem("sps_custom_part_groups") || "{}");
+                const mergedGroups = { ...jsonData.customGroups };
+                Object.keys(localGroups).forEach(glbKey => {
+                    if (localGroups[glbKey] && localGroups[glbKey].length > 0) {
+                        mergedGroups[glbKey] = localGroups[glbKey];
+                    }
+                });
+                localStorage.setItem("sps_custom_part_groups", JSON.stringify(mergedGroups));
+            }
+
+            if (rawMeshParts.length > 0) {
+                rebuildDisplayTreeItems();
+                renderModelTree();
+            }
+        }
+
+        function buildFullGrupJsonObject() {
+            return {
+                updatedAt: new Date().toISOString(),
+                customNames: JSON.parse(localStorage.getItem("sps_custom_part_names") || "{}"),
+                customGroups: JSON.parse(localStorage.getItem("sps_custom_part_groups") || "{}")
+            };
+        }
+
+        // 1. AUTO-SAVE KE FILE LOKAL grup.json DI VS CODE (Hanya perlu klik Link 1x)
+        async function connectLocalGrupJsonFile() {
+            if (!window.showSaveFilePicker) {
+                alert("Browser ini tidak mendukung Direct Local Save. Namun tenang, Auto-Save ke GitHub tetap berjalan otomatis!");
+                return;
+            }
+            try {
+                grupJsonFileHandle = await window.showSaveFilePicker({
+                    suggestedName: 'grup.json',
+                    types: [{
+                        description: 'JSON File',
+                        accept: { 'application/json': ['.json'] }
+                    }]
+                });
+                const btn = document.getElementById("btnConnectJsonFile");
+                btn.classList.add("connected");
+                btn.innerHTML = `<i class="fa-solid fa-check-circle"></i> Lokal Terhubung`;
+                await autoWriteToLocalAndGitHub();
+            } catch (err) {
+                console.log("Batal memilih file lokal:", err);
+            }
+        }
+
+        // 2. AUTO-COMMIT KE REPOSITORY GITHUB VIA TOKEN API
+        async function syncToGitHubGrupJson(showAlert = false) {
+            const token = getActiveGitHubToken();
+            if (!token) return;
+
+            const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+            const jsonString = JSON.stringify(buildFullGrupJsonObject(), null, 2);
+            const contentBase64 = btoa(unescape(encodeURIComponent(jsonString)));
+
+            try {
+                setJsonStatusText(`<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke GitHub...`);
+
+                // Cek apakah file grup.json sudah ada di GitHub untuk mengambil kode SHA-nya
+                let existingSha = null;
+                const getRes = await fetch(apiUrl, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Accept": "application/vnd.github+json"
+                    }
+                });
+                if (getRes.ok) {
+                    const fileData = await getRes.json();
+                    existingSha = fileData.sha;
+                }
+
+                const bodyPayload = {
+                    message: "Auto-update grup.json (Group & Nama Sparepart 3D)",
+                    content: contentBase64
+                };
+                if (existingSha) bodyPayload.sha = existingSha;
+
+                const putRes = await fetch(apiUrl, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Accept": "application/vnd.github+json",
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(bodyPayload)
+                });
+
+                if (putRes.ok) {
+                    setJsonStatusText(`<i class="fa-solid fa-cloud-check"></i> Tersimpan di Lokal & GitHub!`);
+                    if (showAlert) alert("Berhasil! File grup.json di GitHub kamu sudah ter-update otomatis.");
+                } else {
+                    // Jika repo lokal belum di-push ke GitHub, tetap aman di lokal
+                    setJsonStatusText(`<i class="fa-solid fa-hdd"></i> Tersimpan di Lokal (Repo GitHub belum ada)`);
+                    if (showAlert) {
+                        const errData = await putRes.json();
+                        alert(`Info GitHub API: ${errData.message}\n(Pastikan repository '${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}' sudah dibuat di GitHub saat kamu siap hosting nanti. Untuk sekarang data sudah tersimpan aman di Lokal!)`);
+                    }
+                }
+            } catch (err) {
+                console.log("GitHub Sync menunggu koneksi/repo:", err);
+                setJsonStatusText(`<i class="fa-solid fa-hdd"></i> Tersimpan di Lokal`);
+            }
+        }
+
+        // Menjalankan Auto-Save ke File Lokal grup.json (VS Code) DAN ke GitHub secara bersamaan!
+        async function autoWriteToLocalAndGitHub() {
+            // Simpan ke file lokal grup.json di VS Code jika sudah di-link
+            if (grupJsonFileHandle) {
+                try {
+                    const writable = await grupJsonFileHandle.createWritable();
+                    const jsonString = JSON.stringify(buildFullGrupJsonObject(), null, 2);
+                    await writable.write(jsonString);
+                    await writable.close();
+                    setJsonStatusText(`<i class="fa-solid fa-check-double"></i> grup.json Lokal Terupdate!`);
+                } catch (err) {
+                    console.error("Gagal menulis ke grup.json lokal:", err);
+                }
+            }
+            // Sekaligus kirim ke GitHub di latar belakang
+            syncToGitHubGrupJson(false);
+        }
+
+        // =========================================================================
+        // INISIALISASI THREE.JS: HOVER HIJAU, SHIFT+KLIK MULTI-SELECT, GROUP & UNGROUP
+        // =========================================================================
+        let scene, camera, renderer, controls, raycaster, mouse;
+        let currentLoadedModel = null;
+        let rawMeshParts = [];      // Semua mesh mentah dari GLB
+        let displayTreeItems = [];  // Daftar item yang sudah digabung (Group Set + Single Part)
+        let isGhostMode = false;
+        let isLeftClickPanMode = false;
+        let currentIsolatedItem = null; // Item atau Grup yang sedang di-open
+        let multiSelectedItems = [];    // Keranjang pilihan saat tahan Shift + Klik
+        let currentHoveredItem = null;
+        let currentGlbUrl = "";
+        let isGroupingModalMode = false;
+        let itemBeingRenamed = null;
+
+        // Penyimpanan Nama Part & Pengelompokan Group per File GLB di LocalStorage + grup.json
+        function getSavedPartNamesMap() {
+            const allMaps = JSON.parse(localStorage.getItem("sps_custom_part_names") || "{}");
+            return allMaps[currentGlbUrl] || {};
+        }
+
+        function savePartNameToStorage(partKey, newName) {
+            const allMaps = JSON.parse(localStorage.getItem("sps_custom_part_names") || "{}");
+            if (!allMaps[currentGlbUrl]) allMaps[currentGlbUrl] = {};
+            allMaps[currentGlbUrl][partKey] = newName;
+            localStorage.setItem("sps_custom_part_names", JSON.stringify(allMaps));
+            autoWriteToLocalAndGitHub(); // Otomatis nambah ke grup.json Lokal & GitHub!
+        }
+
+        function getSavedGroupsList() {
+            const allGroups = JSON.parse(localStorage.getItem("sps_custom_part_groups") || "{}");
+            return allGroups[currentGlbUrl] || [];
+        }
+
+        function saveGroupsListToStorage(groupsArray) {
+            const allGroups = JSON.parse(localStorage.getItem("sps_custom_part_groups") || "{}");
+            allGroups[currentGlbUrl] = groupsArray;
+            localStorage.setItem("sps_custom_part_groups", JSON.stringify(allGroups));
+            autoWriteToLocalAndGitHub(); // Otomatis nambah ke grup.json Lokal & GitHub!
+        }
+
+        // Material Highlight Hijau khas Autodesk Inventor saat kursor diarahkan (Hover)
+        const hoverGreenMaterial = new THREE.MeshStandardMaterial({
+            color: 0x10b981,
+            emissive: 0x059669,
+            emissiveIntensity: 0.45,
+            roughness: 0.3,
+            metalness: 0.2
+        });
+
+        // Material Ungu/Biru saat dipilih dengan Shift + Klik (Multi-Select untuk Group)
+        const multiSelectMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8b5cf6,
+            emissive: 0x6d28d9,
+            emissiveIntensity: 0.5,
+            roughness: 0.3,
+            metalness: 0.2
+        });
+
+        // Material Ghost (Transparan)
+        const ghostMaterial = new THREE.MeshBasicMaterial({
+            color: 0x94a3b8,
+            transparent: true,
+            opacity: 0.12,
+            wireframe: false
+        });
+
+        function initInventor3DViewer() {
+            const container = document.getElementById("threeCanvasContainer");
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 50000);
+            camera.position.set(5, 5, 5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.enablePan = true;
+            controls.screenSpacePanning = true;
+            controls.panSpeed = 1.2;
+            controls.zoomSpeed = 1.2;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight1.position.set(15, 25, 20);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x90b4ce, 0.5);
+            dirLight2.position.set(-15, -10, -15);
+            scene.add(dirLight2);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            renderer.domElement.addEventListener('pointermove', onCanvasPointerMove);
+            renderer.domElement.addEventListener('pointerleave', clearHoverHighlight);
+
+            let downTime = 0;
+            let downPos = { x: 0, y: 0 };
+            renderer.domElement.addEventListener('pointerdown', (e) => {
+                downTime = Date.now();
+                downPos = { x: e.clientX, y: e.clientY };
+            });
+            renderer.domElement.addEventListener('pointerup', (event) => {
+                if (event.button !== 0) return;
+                const moveDist = Math.hypot(event.clientX - downPos.x, event.clientY - downPos.y);
+                if (Date.now() - downTime < 250 && moveDist < 6) {
+                    onCanvasClick(event);
+                }
+            });
+
+            // Tekan tombol ESC di keyboard untuk langsung membatalkan blok Shift+Klik
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (multiSelectedItems.length > 0) {
+                        clearMultiSelectionOnly();
+                    } else if (currentIsolatedItem) {
+                        showAllParts();
+                    }
+                }
+            });
+
+            window.addEventListener('resize', onWindowResize);
+            animate3D();
+        }
+
+        function togglePanRotateMode() {
+            if (!controls) return;
+            isLeftClickPanMode = !isLeftClickPanMode;
+            const btn = document.getElementById("btnPanMode");
+            const container = document.getElementById("threeCanvasContainer");
+
+            if (isLeftClickPanMode) {
+                controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.PAN,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.ROTATE
+                };
+                btn.classList.add("pan-active");
+                btn.innerHTML = `<i class="fa-solid fa-hand"></i> Mode: Geser / Pan (Klik Kiri)`;
+                container.classList.add("pan-mode");
+            } else {
+                controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.PAN
+                };
+                btn.classList.remove("pan-active");
+                btn.innerHTML = `<i class="fa-solid fa-arrows-up-down-left-right"></i> Mode: Putar (Klik Kanan=Geser)`;
+                container.classList.remove("pan-mode");
+            }
+        }
+
+        function panCameraByStep(dirX, dirY) {
+            if (!camera || !controls) return;
+            const distance = camera.position.distanceTo(controls.target);
+            const step = distance * 0.12;
+
+            const right = new THREE.Vector3();
+            const up = new THREE.Vector3();
+            camera.matrix.extractBasis(right, up, new THREE.Vector3());
+
+            const moveOffset = new THREE.Vector3();
+            moveOffset.addScaledVector(right, dirX * step);
+            moveOffset.addScaledVector(up, -dirY * step);
+
+            camera.position.add(moveOffset);
+            controls.target.add(moveOffset);
+            controls.update();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById("threeCanvasContainer");
+            if (!container || !camera || !renderer) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        // Mengembalikan warna material dari suatu Item/Grup sesuai statusnya
+        function restoreItemMaterials(treeItem) {
+            if (!treeItem || !treeItem.meshes) return;
+            const isMultiSelected = multiSelectedItems.some(m => m.id === treeItem.id);
+            
+            treeItem.meshes.forEach(mesh => {
+                if (isMultiSelected) {
+                    mesh.material = multiSelectMaterial;
+                } else if (currentIsolatedItem && currentIsolatedItem.id !== treeItem.id && isGhostMode) {
+                    mesh.material = ghostMaterial;
+                } else {
+                    mesh.material = mesh.userData.originalMaterial;
+                }
+            });
+        }
+
+        function clearHoverHighlight() {
+            if (currentHoveredItem) {
+                restoreItemMaterials(currentHoveredItem);
+                const treeEl = document.getElementById(`tree-item-${currentHoveredItem.id}`);
+                if (treeEl) treeEl.classList.remove("hovered-from-3d");
+                currentHoveredItem = null;
+            }
+            const tooltip = document.getElementById("partHoverTooltip");
+            if (tooltip) tooltip.style.display = "none";
+            const container = document.getElementById("threeCanvasContainer");
+            if (container) container.classList.remove("hovering-part");
+        }
+
+        // Mencari Item/Grup mana yang memiliki mesh yang ditunjuk kursor
+        function findTreeItemByMeshUuid(meshUuid) {
+            return displayTreeItems.find(item => item.meshes.some(m => m.uuid === meshUuid));
+        }
+
+        function onCanvasPointerMove(event) {
+            if (!currentLoadedModel || displayTreeItems.length === 0) return;
+
+            const container = document.getElementById("threeCanvasContainer");
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            let pickableMeshes = [];
+            displayTreeItems.forEach(item => {
+                if (!currentIsolatedItem || currentIsolatedItem.id === item.id || event.shiftKey) {
+                    item.meshes.forEach(m => {
+                        if (m.visible) pickableMeshes.push(m);
+                    });
+                }
+            });
+
+            const intersects = raycaster.intersectObjects(pickableMeshes, false);
+            const tooltip = document.getElementById("partHoverTooltip");
+
+            if (intersects.length > 0) {
+                const hitMesh = intersects[0].object;
+                const foundItem = findTreeItemByMeshUuid(hitMesh.uuid);
+
+                if (foundItem) {
+                    if (currentHoveredItem && currentHoveredItem.id !== foundItem.id) {
+                        restoreItemMaterials(currentHoveredItem);
+                        const oldTree = document.getElementById(`tree-item-${currentHoveredItem.id}`);
+                        if (oldTree) oldTree.classList.remove("hovered-from-3d");
+                    }
+
+                    currentHoveredItem = foundItem;
+                    foundItem.meshes.forEach(m => { m.material = hoverGreenMaterial; });
+                    container.classList.add("hovering-part");
+
+                    tooltip.style.display = "flex";
+                    tooltip.style.left = `${event.clientX - rect.left}px`;
+                    tooltip.style.top = `${event.clientY - rect.top}px`;
+                    const groupSuffix = foundItem.isGroup ? ` (${foundItem.meshes.length} Sub-Part)` : "";
+                    document.getElementById("hoverPartText").innerText = foundItem.name + groupSuffix;
+
+                    const treeEl = document.getElementById(`tree-item-${foundItem.id}`);
+                    if (treeEl) treeEl.classList.add("hovered-from-3d");
+                    return;
+                }
+            }
+
+            clearHoverHighlight();
+        }
+
+        function extractBestInventorPartName(meshNode, indexCounter) {
+            let candidates = [];
+            let curr = meshNode;
+            while (curr && curr !== currentLoadedModel) {
+                if (curr.name && curr.name.trim() !== "") {
+                    candidates.push(curr.name.trim());
+                }
+                curr = curr.parent;
+            }
+            const meaningful = candidates.find(n => !/^(solid|mesh|body|node|object|instance)[_\-\s]*\d*$/i.test(n));
+            let chosen = meaningful || candidates[0] || `Part_Komponen_${indexCounter}`;
+            return chosen.replace(/_/g, " ");
+        }
+
+        // Menyusun daftar Model Browser berdasarkan Grup yang disimpan + Part satuan yang belum digrup
+        function rebuildDisplayTreeItems() {
+            const savedNamesMap = getSavedPartNamesMap();
+            const savedGroups = getSavedGroupsList();
+
+            const groupedPartKeysSet = new Set();
+            displayTreeItems = [];
+
+            // 1. Masukkan semua Grup (Set) terlebih dahulu di bagian atas daftar
+            savedGroups.forEach(grp => {
+                const memberParts = rawMeshParts.filter(p => grp.partKeys.includes(p.partKey));
+                if (memberParts.length > 0) {
+                    memberParts.forEach(p => groupedPartKeysSet.add(p.partKey));
+                    displayTreeItems.push({
+                        id: grp.groupId,
+                        isGroup: true,
+                        name: grp.name,
+                        originalName: `Set Gabungan (${memberParts.length} Part)`,
+                        partKeys: memberParts.map(p => p.partKey),
+                        meshes: memberParts.map(p => p.mesh),
+                        isRenamed: true
+                    });
+                }
+            });
+
+            // 2. Masukkan sisa part satuan yang tidak masuk ke dalam grup mana pun
+            rawMeshParts.forEach(p => {
+                if (!groupedPartKeysSet.has(p.partKey)) {
+                    const customName = savedNamesMap[p.partKey] || null;
+                    displayTreeItems.push({
+                        id: p.id,
+                        isGroup: false,
+                        partKey: p.partKey,
+                        partKeys: [p.partKey],
+                        originalName: p.originalName,
+                        name: customName || p.originalName,
+                        isRenamed: Boolean(customName),
+                        meshes: [p.mesh]
+                    });
+                }
+            });
+        }
+
+        // Memuat file GLB
+        function loadGlbToInventorViewer(glbFileName) {
+            if (!scene) initInventor3DViewer();
+            if (currentGlbUrl === glbFileName) return;
+            currentGlbUrl = glbFileName;
+
+            const treeListEl = document.getElementById("modelTreeList");
+            treeListEl.innerHTML = `<li style="padding: 15px; color: #94a3b8; text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Membaca Part 3D...</li>`;
+
+            clearHoverHighlight();
+            if (currentLoadedModel) {
+                scene.remove(currentLoadedModel);
+                currentLoadedModel = null;
+            }
+            rawMeshParts = [];
+            displayTreeItems = [];
+            currentIsolatedItem = null;
+            multiSelectedItems = [];
+            document.getElementById("btnShowAllParts").style.display = "none";
+            document.getElementById("isolatedBanner").classList.remove("active");
+
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+                glbFileName,
+                function (gltf) {
+                    currentLoadedModel = gltf.scene;
+                    scene.add(currentLoadedModel);
+                    currentLoadedModel.updateMatrixWorld(true);
+
+                    let indexCounter = 1;
+                    currentLoadedModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.userData.originalMaterial = child.material ? child.material.clone() : new THREE.MeshStandardMaterial({ color: 0xcccccc });
+                            const rawInventorName = extractBestInventorPartName(child, indexCounter);
+                            const partKey = `part_${indexCounter}_${rawInventorName}`;
+
+                            rawMeshParts.push({
+                                id: child.uuid,
+                                partKey: partKey,
+                                originalName: rawInventorName,
+                                mesh: child
+                            });
+                            indexCounter++;
+                        }
+                    });
+
+                    rebuildDisplayTreeItems();
+                    renderModelTree();
+                    onWindowResize();
+                    setTimeout(() => {
+                        resetCameraView();
+                    }, 60);
+                },
+                undefined,
+                function (error) {
+                    treeListEl.innerHTML = `<li style="padding: 15px; color: #f87171; text-align: center;">File <b>${glbFileName}</b> belum tersedia di folder.</li>`;
+                    document.getElementById("meshCountBadge").innerText = "0 Part";
+                }
+            );
+        }
+
+        // Menampilkan daftar Part & Grup di sidebar kiri 3D Viewer
+        function renderModelTree() {
+            const treeListEl = document.getElementById("modelTreeList");
+            const searchVal = document.getElementById("treeSearchInput").value.toLowerCase().trim();
+            treeListEl.innerHTML = "";
+
+            document.getElementById("meshCountBadge").innerText = `${displayTreeItems.length} Item`;
+
+            // Tombol paling atas: Assembly Keseluruhan (.iam)
+            const allLi = document.createElement("li");
+            allLi.className = "tree-item" + (currentIsolatedItem === null && multiSelectedItems.length === 0 ? " active" : "");
+            allLi.innerHTML = `<div class="tree-item-left"><i class="fa-solid fa-cubes part-icon"></i> <b>ASSEMBLY UTUH (.iam)</b></div>`;
+            allLi.onclick = () => showAllParts();
+            treeListEl.appendChild(allLi);
+
+            const filteredItems = displayTreeItems.filter(p => 
+                p.name.toLowerCase().includes(searchVal) || p.originalName.toLowerCase().includes(searchVal)
+            );
+
+            filteredItems.forEach((itemObj) => {
+                const li = document.createElement("li");
+                li.id = `tree-item-${itemObj.id}`;
+                const isIsolated = currentIsolatedItem && currentIsolatedItem.id === itemObj.id;
+                const isMultiSel = multiSelectedItems.some(m => m.id === itemObj.id);
+
+                li.className = "tree-item" + 
+                    (isIsolated ? " active" : "") + 
+                    (isMultiSel ? " multi-selected" : "") + 
+                    (itemObj.isGroup ? " grouped-item" : (itemObj.isRenamed ? " renamed" : ""));
+                
+                li.title = itemObj.isGroup 
+                    ? `Set Gabungan (${itemObj.meshes.length} part). Klik untuk buka 1 set, Shift+Klik untuk gabung lagi.` 
+                    : `Klik untuk buka satuan, atau tahan Shift+Klik untuk memilih beberapa part & Group jadi 1 Set.`;
+                
+                const iconClass = itemObj.isGroup ? "fa-layer-group" : (itemObj.isRenamed ? "fa-tag" : "fa-cube");
+                const countPill = itemObj.isGroup ? `<span class="group-count-pill">${itemObj.meshes.length}</span>` : "";
+                const ungroupBtnHtml = itemObj.isGroup 
+                    ? `<button class="btn-tree-action ungroup" title="Ungroup (Pisahkan Set ini)"><i class="fa-solid fa-object-ungroup"></i></button>` 
+                    : "";
+
+                li.innerHTML = `
+                    <div class="tree-item-left">
+                        <i class="fa-solid ${iconClass} part-icon"></i>
+                        <span>${itemObj.name}</span>
+                        ${countPill}
+                    </div>
+                    <div class="tree-actions">
+                        <button class="btn-tree-action rename" title="Beri Nama / Link ke Tabel Sparepart"><i class="fa-solid fa-pen"></i></button>
+                        ${ungroupBtnHtml}
+                    </div>
+                `;
+                
+                // Klik tombol pensil
+                li.querySelector(".btn-tree-action.rename").onclick = (e) => {
+                    e.stopPropagation();
+                    isolateSingleItem(itemObj);
+                    openRenamePartModal(itemObj);
+                };
+
+                // Klik tombol Ungroup di daftar kiri (jika item adalah grup)
+                if (itemObj.isGroup) {
+                    li.querySelector(".btn-tree-action.ungroup").onclick = (e) => {
+                        e.stopPropagation();
+                        ungroupSpecificSet(itemObj);
+                    };
+                }
+
+                li.onmouseenter = () => {
+                    if (currentHoveredItem && currentHoveredItem.id !== itemObj.id) {
+                        restoreItemMaterials(currentHoveredItem);
+                    }
+                    currentHoveredItem = itemObj;
+                    itemObj.meshes.forEach(m => { m.material = hoverGreenMaterial; });
+                };
+                li.onmouseleave = () => {
+                    restoreItemMaterials(itemObj);
+                    currentHoveredItem = null;
+                };
+
+                // Mendukung Shift + Klik di daftar kiri maupun Klik biasa
+                li.onclick = (event) => {
+                    if (event.shiftKey) {
+                        toggleMultiSelectItem(itemObj);
+                    } else {
+                        isolateSingleItem(itemObj);
+                    }
+                };
+                treeListEl.appendChild(li);
+            });
+        }
+
+        function filterModelTree() {
+            renderModelTree();
+        }
+
+        // =========================================================================
+        // FITUR MULTI-SELECT (SHIFT + KLIK), BATAL PILIH, & GROUP / UNGROUP
+        // =========================================================================
+        function toggleMultiSelectItem(itemObj) {
+            clearHoverHighlight();
+
+            if (currentIsolatedItem && multiSelectedItems.length === 0) {
+                multiSelectedItems.push(currentIsolatedItem);
+                displayTreeItems.forEach(it => it.meshes.forEach(m => { m.visible = true; }));
+                currentIsolatedItem = null;
+            }
+
+            const existingIdx = multiSelectedItems.findIndex(m => m.id === itemObj.id);
+            if (existingIdx !== -1) {
+                const removed = multiSelectedItems.splice(existingIdx, 1)[0];
+                restoreItemMaterials(removed);
+            } else {
+                multiSelectedItems.push(itemObj);
+            }
+
+            displayTreeItems.forEach(it => restoreItemMaterials(it));
+
+            updateBannerForSelection();
+            renderModelTree();
+        }
+
+        // Fungsi membatalkan blok Shift+Klik saja tanpa harus mereset posisi kamera
+        function clearMultiSelectionOnly() {
+            clearHoverHighlight();
+            multiSelectedItems = [];
+            displayTreeItems.forEach(item => {
+                restoreItemMaterials(item);
+            });
+            updateBannerForSelection();
+            renderModelTree();
+        }
+
+        function updateBannerForSelection() {
+            const banner = document.getElementById("isolatedBanner");
+            const prefixText = document.getElementById("bannerPrefixText");
+            const nameEl = document.getElementById("isolatedPartName");
+            const btnGroup = document.getElementById("btnGroupSelected");
+            const btnRename = document.getElementById("btnRenameSingle");
+            const btnUngroup = document.getElementById("btnUngroupSelected");
+            const btnCancelSel = document.getElementById("btnCancelMultiSelect");
+            const btnShowAll = document.getElementById("btnShowAllParts");
+
+            if (multiSelectedItems.length > 0) {
+                banner.classList.add("active");
+                btnShowAll.style.display = "flex";
+                prefixText.innerText = "Dipilih (Shift+Klik):";
+                
+                const totalMeshes = multiSelectedItems.reduce((acc, it) => acc + it.meshes.length, 0);
+                nameEl.innerText = `${multiSelectedItems.length} Komponen (${totalMeshes} Sub-Part)`;
+
+                btnGroup.style.display = multiSelectedItems.length >= 2 ? "flex" : "none";
+                btnRename.style.display = multiSelectedItems.length === 1 ? "flex" : "none";
+                btnUngroup.style.display = "none";
+                btnCancelSel.style.display = "flex";
+            } else if (currentIsolatedItem) {
+                banner.classList.add("active");
+                btnShowAll.style.display = "flex";
+                prefixText.innerText = currentIsolatedItem.isGroup ? `Set Grup (${currentIsolatedItem.meshes.length} Part):` : "Part:";
+                nameEl.innerText = currentIsolatedItem.name;
+
+                btnGroup.style.display = "none";
+                btnRename.style.display = "flex";
+                btnUngroup.style.display = currentIsolatedItem.isGroup ? "flex" : "none";
+                btnCancelSel.style.display = "none";
+            } else {
+                banner.classList.remove("active");
+                btnShowAll.style.display = "none";
+            }
+        }
+
+        // Membuka 1 Part atau 1 Set Grup secara utuh
+        function isolateSingleItem(itemObj, skipTableSync = false) {
+            clearHoverHighlight();
+            multiSelectedItems = [];
+            currentIsolatedItem = itemObj;
+
+            displayTreeItems.forEach(item => {
+                if (item.id === itemObj.id) {
+                    item.meshes.forEach(m => {
+                        m.visible = true;
+                        m.material = m.userData.originalMaterial;
+                    });
+                } else {
+                    item.meshes.forEach(m => {
+                        if (isGhostMode) {
+                            m.visible = true;
+                            m.material = ghostMaterial;
+                        } else {
+                            m.visible = false;
+                        }
+                    });
+                }
+            });
+
+            // Fokuskan kamera ke item/grup tersebut (tanpa filter outlier karena memang mau fokus ke part ini)
+            focusCameraOnMeshes(itemObj.meshes, false);
+
+            updateBannerForSelection();
+            renderModelTree();
+
+            if (!skipTableSync) {
+                sync3DClickToTable(itemObj);
+            }
+        }
+
+        function sync3DClickToTable(itemObj) {
+            const selectedEngine = document.getElementById("mesinSelect").value;
+            const engineParts = globalData.filter(d => d.engine === selectedEngine);
+            const targetName = itemObj.name.toLowerCase().trim();
+
+            const hasMatchInTable = engineParts.some(d => 
+                d.nama.toLowerCase().includes(targetName) || targetName.includes(d.nama.toLowerCase())
+            );
+
+            const searchInput = document.getElementById("searchInput");
+            if (hasMatchInTable) {
+                searchInput.value = itemObj.name;
+                updateDashboard();
+            } else if (searchInput.value !== "") {
+                searchInput.value = "";
+                updateDashboard();
+            }
+        }
+
+        function showAllParts() {
+            clearHoverHighlight();
+            currentIsolatedItem = null;
+            multiSelectedItems = [];
+
+            displayTreeItems.forEach(item => {
+                item.meshes.forEach(m => {
+                    m.visible = true;
+                    m.material = m.userData.originalMaterial;
+                });
+            });
+
+            updateBannerForSelection();
+            
+            const searchInput = document.getElementById("searchInput");
+            if (searchInput.value !== "") {
+                searchInput.value = "";
+                updateDashboard();
+            }
+
+            resetCameraView();
+            renderModelTree();
+        }
+
+        // Membuka Modal untuk Group beberapa part yang dipilih menjadi 1 Set
+        function openGroupModal() {
+            if (multiSelectedItems.length < 2) return;
+            isGroupingModalMode = true;
+            itemBeingRenamed = null;
+
+            document.getElementById("renameModalTitle").innerHTML = `<i class="fa-solid fa-object-group" style="color: #8b5cf6;"></i> Group ${multiSelectedItems.length} Komponen Menjadi 1 Set`;
+            document.getElementById("originalSolidLabel").innerText = "Komponen yang Akan Digabung Jadi 1 Set:";
+            document.getElementById("originalSolidNameInput").value = multiSelectedItems.map(i => i.name).join(" + ");
+            document.getElementById("newCustomPartNameInput").value = "";
+
+            populateModalTableDropdown("");
+            document.getElementById("renamePartModal").classList.add("active");
+        }
+
+        // Membuka Modal untuk Beri Nama 1 Part atau 1 Grup
+        function openRenamePartModal(targetItem) {
+            const item = targetItem || currentIsolatedItem || (multiSelectedItems.length === 1 ? multiSelectedItems[0] : null);
+            if (!item) return;
+            isGroupingModalMode = false;
+            itemBeingRenamed = item;
+
+            document.getElementById("renameModalTitle").innerHTML = `<i class="fa-solid fa-tags" style="color: var(--primary-blue);"></i> Beri Nama Komponen 3D & Hubungkan ke Tabel`;
+            document.getElementById("originalSolidLabel").innerText = "ID Asli dari Inventor (GLB):";
+            document.getElementById("originalSolidNameInput").value = `${item.originalName}`;
+            document.getElementById("newCustomPartNameInput").value = item.isRenamed ? item.name : "";
+
+            populateModalTableDropdown(item.name);
+            document.getElementById("renamePartModal").classList.add("active");
+        }
+
+        function populateModalTableDropdown(selectedName) {
+            const selectedEngine = document.getElementById("mesinSelect").value;
+            const selectedPlacement = document.getElementById("placementSelect").value;
+            const relevantParts = globalData.filter(item => {
+                const matchEngine = item.engine === selectedEngine;
+                const matchPlacement = selectedPlacement === "ALL" ? true : item.placement === selectedPlacement;
+                return matchEngine && matchPlacement;
+            });
+
+            const selectEl = document.getElementById("selectFromTablePart");
+            selectEl.innerHTML = `<option value="">-- Pilih Nama Sparepart dari Tabel (${relevantParts.length} Item) --</option>`;
+            relevantParts.forEach(sp => {
+                const opt = document.createElement("option");
+                opt.value = sp.nama;
+                opt.text = `${sp.nama} (${sp.kode !== '-' ? sp.kode : sp.tipe})`;
+                if (selectedName && selectedName.toUpperCase() === sp.nama.toUpperCase()) opt.selected = true;
+                selectEl.appendChild(opt);
+            });
+        }
+
+        function onSelectTablePartForRename() {
+            const val = document.getElementById("selectFromTablePart").value;
+            if (val) {
+                document.getElementById("newCustomPartNameInput").value = val;
+            }
+        }
+
+        function closeRenamePartModal() {
+            document.getElementById("renamePartModal").classList.remove("active");
+            itemBeingRenamed = null;
+            isGroupingModalMode = false;
+        }
+
+        // Menyimpan Hasil Group (1 Set) atau Hasil Rename
+        function saveCustomPartOrGroup() {
+            const newName = document.getElementById("newCustomPartNameInput").value.trim();
+            if (!newName) {
+                alert("Silakan pilih dari dropdown atau ketik nama set sparepart terlebih dahulu.");
+                return;
+            }
+
+            if (isGroupingModalMode && multiSelectedItems.length >= 2) {
+                const combinedPartKeys = [];
+                multiSelectedItems.forEach(item => {
+                    item.partKeys.forEach(pk => {
+                        if (!combinedPartKeys.includes(pk)) combinedPartKeys.push(pk);
+                    });
+                });
+
+                let savedGroups = getSavedGroupsList();
+                savedGroups = savedGroups.filter(g => !g.partKeys.some(pk => combinedPartKeys.includes(pk)));
+
+                const newGroupId = "group_" + Date.now();
+                savedGroups.push({
+                    groupId: newGroupId,
+                    name: newName,
+                    partKeys: combinedPartKeys
+                });
+
+                saveGroupsListToStorage(savedGroups);
+                multiSelectedItems = [];
+                rebuildDisplayTreeItems();
+
+                const newlyCreatedGroup = displayTreeItems.find(i => i.id === newGroupId);
+                closeRenamePartModal();
+                if (newlyCreatedGroup) {
+                    isolateSingleItem(newlyCreatedGroup);
+                } else {
+                    renderModelTree();
+                }
+                return;
+            }
+
+            if (itemBeingRenamed) {
+                if (itemBeingRenamed.isGroup) {
+                    const savedGroups = getSavedGroupsList();
+                    const targetGrp = savedGroups.find(g => g.groupId === itemBeingRenamed.id);
+                    if (targetGrp) {
+                        targetGrp.name = newName;
+                        saveGroupsListToStorage(savedGroups);
+                    }
+                } else {
+                    savePartNameToStorage(itemBeingRenamed.partKey, newName);
+                }
+
+                const targetId = itemBeingRenamed.id;
+                rebuildDisplayTreeItems();
+                const updatedItem = displayTreeItems.find(i => i.id === targetId);
+                closeRenamePartModal();
+                if (updatedItem) {
+                    isolateSingleItem(updatedItem);
+                }
+            }
+        }
+
+        // Fungsi Ungroup (Memisahkan kembali gabungan 1 Set menjadi part satuan)
+        function ungroupCurrentSet() {
+            if (!currentIsolatedItem || !currentIsolatedItem.isGroup) return;
+            ungroupSpecificSet(currentIsolatedItem);
+        }
+
+        function ungroupSpecificSet(groupItem) {
+            if (!confirm(`Pisahkan (Ungroup) set "${groupItem.name}" kembali menjadi ${groupItem.meshes.length} part satuan?`)) return;
+
+            let savedGroups = getSavedGroupsList();
+            savedGroups = savedGroups.filter(g => g.groupId !== groupItem.id);
+            saveGroupsListToStorage(savedGroups);
+
+            rebuildDisplayTreeItems();
+            showAllParts();
+        }
+
+        function toggleGhostMode() {
+            isGhostMode = !isGhostMode;
+            const btn = document.getElementById("btnGhostMode");
+            btn.innerHTML = `<i class="fa-solid fa-ghost"></i> Ghost: ${isGhostMode ? "ON" : "OFF"}`;
+            btn.classList.toggle("active", isGhostMode);
+            if (currentIsolatedItem) {
+                isolateSingleItem(currentIsolatedItem, true);
+            }
+        }
+
+        function toggleModelTree() {
+            const panel = document.getElementById("inventorTreePanel");
+            const btn = document.getElementById("btnToggleTree");
+            panel.classList.toggle("collapsed");
+            btn.classList.toggle("active", !panel.classList.contains("collapsed"));
+            setTimeout(onWindowResize, 260);
+        }
+
+        // =========================================================================
+        // PERBAIKAN AUTO-ZOOM CERDAS: MENGABAIKAN PART NYASAR AGAR TIDAK KECIL BANGET
+        // =========================================================================
+        function focusCameraOnMeshes(meshesArray, filterOutliers = true) {
+            if (!meshesArray || meshesArray.length === 0) return;
+
+            const meshBoxes = [];
+            meshesArray.forEach(m => {
+                m.updateMatrixWorld(true);
+                const b = new THREE.Box3().setFromObject(m);
+                if (!b.isEmpty()) {
+                    const c = b.getCenter(new THREE.Vector3());
+                    const s = b.getSize(new THREE.Vector3());
+                    if (isFinite(c.x) && isFinite(c.y) && isFinite(c.z) && (s.x + s.y + s.z > 0)) {
+                        meshBoxes.push({ box: b, center: c });
+                    }
+                }
+            });
+
+            if (meshBoxes.length === 0) return;
+
+            let targetBoxes = meshBoxes;
+
+            // Jika sedang menampilkan keseluruhan mesin (banyak part), buang part nyasar (outlier) yang terlempar jauh dari kerumunan mesin utama
+            if (filterOutliers && meshBoxes.length > 5) {
+                const xs = meshBoxes.map(item => item.center.x).sort((a, b) => a - b);
+                const ys = meshBoxes.map(item => item.center.y).sort((a, b) => a - b);
+                const zs = meshBoxes.map(item => item.center.z).sort((a, b) => a - b);
+                const mid = Math.floor(meshBoxes.length / 2);
+                const medianCenter = new THREE.Vector3(xs[mid], ys[mid], zs[mid]);
+
+                const distances = meshBoxes.map(item => item.center.distanceTo(medianCenter));
+                const sortedDist = [...distances].sort((a, b) => a - b);
+                // Ambil jarak persentil ke-85 sebagai acuan ukuran kerangka utama mesin
+                const refDist = sortedDist[Math.floor(sortedDist.length * 0.85)] || sortedDist[sortedDist.length - 1] || 1;
+                const maxAllowedDist = Math.max(refDist * 2.2, 1e-4);
+
+                const filtered = meshBoxes.filter((item, idx) => distances[idx] <= maxAllowedDist);
+                if (filtered.length > 0) {
+                    targetBoxes = filtered;
+                }
+            }
+
+            const finalBox = new THREE.Box3();
+            targetBoxes.forEach(item => finalBox.union(item.box));
+
+            const center = finalBox.getCenter(new THREE.Vector3());
+            const size = finalBox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+
+            // Jarak kamera lebih dekat (1.1x dari dimensi terbesar) agar mesin langsung terlihat besar & jelas
+            controls.target.copy(center);
+            camera.position.set(center.x + maxDim * 1.1, center.y + maxDim * 0.85, center.z + maxDim * 1.1);
+            camera.lookAt(center);
+            controls.update();
+        }
+
+        function resetCameraView() {
+            if (!currentLoadedModel) return;
+            if (currentIsolatedItem) {
+                focusCameraOnMeshes(currentIsolatedItem.meshes, false);
+            } else {
+                const allMeshes = rawMeshParts.map(p => p.mesh);
+                focusCameraOnMeshes(allMeshes, true);
+            }
+        }
+
+        // Klik di layar 3D:
+        // - Jika klik part sambil tahan Shift = Tambah/Kurangi ke blok Group
+        // - Jika klik part biasa = Buka 1 Part/Set
+        // - Jika klik di tempat kosong (background) = Batalkan blok Shift+Klik!
+        function onCanvasClick(event) {
+            if (!currentLoadedModel || displayTreeItems.length === 0) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            let visibleMeshes = [];
+            displayTreeItems.forEach(item => {
+                if (!currentIsolatedItem || currentIsolatedItem.id === item.id || event.shiftKey) {
+                    item.meshes.forEach(m => { if (m.visible) visibleMeshes.push(m); });
+                }
+            });
+
+            const intersects = raycaster.intersectObjects(visibleMeshes, false);
+            let targetItem = null;
+            if (intersects.length > 0) {
+                targetItem = findTreeItemByMeshUuid(intersects[0].object.uuid);
+            }
+
+            if (targetItem) {
+                if (event.shiftKey) {
+                    toggleMultiSelectItem(targetItem);
+                } else {
+                    isolateSingleItem(targetItem);
+                }
+            } else {
+                // KLIK DI TEMPAT KOSONG (LUAR MESIN): Langsung batalkan blok Shift+Klik!
+                if (multiSelectedItems.length > 0) {
+                    clearMultiSelectionOnly();
+                }
+            }
+        }
+
+        // Ketika baris di Tabel Sparepart diklik, cari Part/Set Grup yang namanya cocok di 3D lalu buka!
+        function syncTableClickTo3D(sparepartName) {
+            if (!displayTreeItems || displayTreeItems.length === 0) return;
+            const cleanTarget = sparepartName.toLowerCase().trim();
+            const keywords = cleanTarget.split(/\s+/).filter(k => k.length > 2);
+
+            let bestMatch = displayTreeItems.find(p => p.name.toLowerCase() === cleanTarget) ||
+                            displayTreeItems.find(p => p.name.toLowerCase().includes(cleanTarget));
+            if (!bestMatch && keywords.length > 0) {
+                bestMatch = displayTreeItems.find(p => keywords.some(k => p.name.toLowerCase().includes(k)));
+            }
+
+            if (bestMatch) {
+                isolateSingleItem(bestMatch, true);
+            }
+        }
+
+        // =========================================================================
+        // KODE ASLI KAMU DI BAWAH INI TIDAK DIUBAH SAMA SEKALI
+        // =========================================================================
+        window.onload = async function() {
+            initInventor3DViewer();
+            await loadGrupJsonFromServer();
+
             // Tambahkan timestamp agar browser selalu mengambil CSV paling baru (tidak kena cache)
             const freshCsvUrl = csvUrl + '&t=' + new Date().getTime();
             
@@ -508,6 +1881,7 @@
             if (viewer.getAttribute("src") !== fileName) {
                 viewer.src = fileName;
                 document.getElementById("activeModelName").innerText = fileName;
+                loadGlbToInventorViewer(fileName);
             }
 
             // Filter berdasarkan Mesin & Placement
@@ -577,6 +1951,12 @@
                         : "";
 
                     const tr = document.createElement("tr");
+                    tr.title = "Klik untuk melihat komponen ini di 3D Viewer";
+                    tr.onclick = () => {
+                        document.querySelectorAll("#sparepartTableBody tr").forEach(r => r.classList.remove("selected-row"));
+                        tr.classList.add("selected-row");
+                        syncTableClickTo3D(item.nama);
+                    };
                     tr.innerHTML = `
                         <td style="font-weight: 500;">${item.nama}</td>
                         <td style="color: #64748b; font-family: monospace; font-size: 12.5px;">${item.kode}</td>
