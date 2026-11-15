@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-15T07:29:26.824Z",
+  "updatedAt": "2026-11-15T07:35:07.601Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -30,6 +30,18 @@
           "part_78_Solid1 181",
           "part_79_Solid1 311",
           "part_80_Solid1 312"
+        ]
+      },
+      {
+        "groupId": "group_1794728107601",
+        "name": "body unwind",
+        "partKeys": [
+          "part_73_Solid1 17",
+          "part_182_Solid1 34",
+          "part_93_Solid1 21",
+          "part_68_Solid1 16",
+          "part_222_Solid1 50",
+          "part_183_Solid1 35"
         ]
       }
     ]
