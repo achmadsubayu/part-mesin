@@ -1,6 +1,10 @@
 {
-  "updatedAt": "2026-11-15T07:22:25.146Z",
-  "customNames": {},
+  "updatedAt": "2026-11-15T07:28:55.665Z",
+  "customNames": {
+    "TW406_keseluruhan.glb": {
+      "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm"
+    }
+  },
   "customGroups": {
     "TW406_keseluruhan.glb": [
       {
