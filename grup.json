@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T03:18:18.685Z",
+  "updatedAt": "2026-11-16T03:19:38.117Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -9,7 +9,8 @@
       "part_67_Solid1 15": "TIMING BELT HTD DOUBLE SIDE 831 XH",
       "part_223_Solid1 51": "BODY INTERFOLD",
       "part_281_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35",
-      "part_287_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35"
+      "part_287_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35",
+      "part_275_Solid1 103": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35"
     }
   },
   "customGroups": {
