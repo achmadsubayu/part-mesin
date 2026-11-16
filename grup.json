@@ -1,15 +1,12 @@
 {
-  "updatedAt": "2026-11-16T02:58:41.358Z",
+  "updatedAt": "2026-11-16T03:01:02.491Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
       "part_117_Solid1 30": "Flat Belt UK.2000x220x2 mm",
       "part_201_Solid1 41": "SHAFT JUMBO TW 406",
       "part_200_Solid1 40": "SHAFT JUMBO TW 406",
-      "part_67_Solid1 15": "TIMING BELT HTD DOUBLE SIDE 831 XH",
-      "part_223_Solid1 51": "BODY INTERFOLD",
-      "part_281_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35",
-      "part_287_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35"
+      "part_67_Solid1 15": "TIMING BELT HTD DOUBLE SIDE 831 XH"
     }
   },
   "customGroups": {
@@ -83,71 +80,31 @@
         ]
       },
       {
-        "groupId": "group_1794792019559",
-        "name": "AIR CYLINDER SDA 100X50 SB",
+        "groupId": "group_1794797587601",
+        "name": "FINGER TOWEL UK. 253X58X8",
         "partKeys": [
-          "part_26_Solid1 146",
-          "part_28_Solid1 148",
-          "part_27_Solid1 147"
-        ]
-      },
-      {
-        "groupId": "group_1794792790261",
-        "name": "AIR CYLINDER SDA 100X50 SB",
-        "partKeys": [
-          "part_23_Solid1 143",
-          "part_25_Solid1 145",
-          "part_24_Solid1 144"
-        ]
-      },
-      {
-        "groupId": "group_1794793117157",
-        "name": "AIR CYLINDER SDA 100X50 SB",
-        "partKeys": [
-          "part_17_Solid1 137",
-          "part_18_Solid1 138",
-          "part_19_Solid1 139"
-        ]
-      },
-      {
-        "groupId": "group_1794793192436",
-        "name": "AIR CYLINDER SDA 100X50 SB",
-        "partKeys": [
-          "part_20_Solid1 140",
-          "part_22_Solid1 142",
-          "part_21_Solid1 141"
-        ]
-      },
-      {
-        "groupId": "group_1794794219003",
-        "name": "Helix Gear Emboss TW 406 Z=60 Back",
-        "partKeys": [
-          "part_8_Solid1 5",
-          "part_7_Solid1 4"
-        ]
-      },
-      {
-        "groupId": "group_1794794311155",
-        "name": "Helix Gear Emboss TW 406 Z=60 Front",
-        "partKeys": [
-          "part_16_Solid1 136",
-          "part_15_Solid1 135"
-        ]
-      },
-      {
-        "groupId": "group_1794794356299",
-        "name": "Helix Gear Emboss TW 406 Z=60 Back",
-        "partKeys": [
-          "part_14_Solid1 7",
-          "part_13_Solid1 6"
-        ]
-      },
-      {
-        "groupId": "group_1794794603203",
-        "name": "Helix Gear Emboss TW 406 Z=60 Front",
-        "partKeys": [
-          "part_58_Solid1 170",
-          "part_57_Solid1 169"
+          "part_225_Solid1 53",
+          "part_235_Solid1 63",
+          "part_242_Solid1 70",
+          "part_245_Solid1 73",
+          "part_246_Solid1 74",
+          "part_226_Solid1 54",
+          "part_237_Solid1 65",
+          "part_228_Solid1 56",
+          "part_227_Solid1 55",
+          "part_238_Solid1 66",
+          "part_239_Solid1 67",
+          "part_240_Solid1 68",
+          "part_241_Solid1 69",
+          "part_230_Solid1 58",
+          "part_229_Solid1 57",
+          "part_236_Solid1 64",
+          "part_234_Solid1 62",
+          "part_231_Solid1 59",
+          "part_243_Solid1 71",
+          "part_232_Solid1 60",
+          "part_244_Solid1 72",
+          "part_233_Solid1 61"
         ]
       }
     ]
