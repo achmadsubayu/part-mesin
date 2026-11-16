@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T01:59:18.419Z",
+  "updatedAt": "2026-11-16T02:03:23.203Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -136,6 +136,14 @@
         "partKeys": [
           "part_14_Solid1 7",
           "part_13_Solid1 6"
+        ]
+      },
+      {
+        "groupId": "group_1794794603203",
+        "name": "Helix Gear Emboss TW 406 Z=60 Front",
+        "partKeys": [
+          "part_58_Solid1 170",
+          "part_57_Solid1 169"
         ]
       }
     ]
