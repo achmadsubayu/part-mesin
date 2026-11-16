@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T06:31:37.326Z",
+  "updatedAt": "2026-11-16T06:32:45.022Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -25,7 +25,8 @@
       "part_309_Solid1 121": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
       "part_310_Solid1 122": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
       "part_308_Solid1 120": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
-      "part_307_Solid1 119": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108"
+      "part_307_Solid1 119": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
+      "part_280_Solid1 107": "PULLEY CONE BAWAH TW 406 + SPUR GEAR"
     }
   },
   "customGroups": {
