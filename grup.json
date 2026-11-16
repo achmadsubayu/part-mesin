@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T03:31:00.804Z",
+  "updatedAt": "2026-11-16T03:31:23.212Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -12,7 +12,8 @@
       "part_287_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35",
       "part_275_Solid1 103": "LENGAN CAKAR EKSENTRIK DEPAN TW 406",
       "part_274_Solid1 102": "LENGAN CAKAR EKSENTRIK BELAKANG TW 406",
-      "part_277_Solid1 105": "LENGAN EKSENTRIK TW 406"
+      "part_277_Solid1 105": "LENGAN EKSENTRIK TW 406",
+      "part_276_Solid1 104": "LENGAN EKSENTRIK TW 406"
     }
   },
   "customGroups": {
