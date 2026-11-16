@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T06:39:15.654Z",
+  "updatedAt": "2026-11-16T06:40:16.534Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -263,6 +263,14 @@
         "partKeys": [
           "part_285_Solid1 267",
           "part_286_Solid1 268"
+        ]
+      },
+      {
+        "groupId": "group_1794811216533",
+        "name": "SPUR GEAR FOLDING TW 406 Z=72 M=3",
+        "partKeys": [
+          "part_284_Solid1 266",
+          "part_283_Solid1 265"
         ]
       }
     ]
