@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T04:15:37.498Z",
+  "updatedAt": "2026-11-16T04:16:23.761Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -222,6 +222,15 @@
           "part_144_Solid1 209",
           "part_143_Solid1 208",
           "part_145_Solid1 210"
+        ]
+      },
+      {
+        "groupId": "group_1794802583761",
+        "name": "BEARING PILLOW BLOCK UCF 209",
+        "partKeys": [
+          "part_130_Solid1 195",
+          "part_132_Solid1 197",
+          "part_131_Solid1 196"
         ]
       }
     ]
