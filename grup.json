@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T01:38:41.373Z",
+  "updatedAt": "2026-11-16T01:39:52.436Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -103,6 +103,15 @@
           "part_17_Solid1 137",
           "part_18_Solid1 138",
           "part_19_Solid1 139"
+        ]
+      },
+      {
+        "groupId": "group_1794793192436",
+        "name": "AIR CYLINDER SDA 100X50 SB",
+        "partKeys": [
+          "part_20_Solid1 140",
+          "part_22_Solid1 142",
+          "part_21_Solid1 141"
         ]
       }
     ]
