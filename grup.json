@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T06:34:54.166Z",
+  "updatedAt": "2026-11-16T06:35:19.774Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -239,6 +239,14 @@
           "part_130_Solid1 195",
           "part_132_Solid1 197",
           "part_131_Solid1 196"
+        ]
+      },
+      {
+        "groupId": "group_1794810919773",
+        "name": "PULLEY CONE ATAS TW 406",
+        "partKeys": [
+          "part_279_Solid1 425",
+          "part_278_Solid1 424"
         ]
       }
     ]
