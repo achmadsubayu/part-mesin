@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T04:02:08.713Z",
+  "updatedAt": "2026-11-16T04:03:09.697Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -186,6 +186,15 @@
           "part_95_Solid1 337",
           "part_96_Solid1 338",
           "part_94_Solid1 336"
+        ]
+      },
+      {
+        "groupId": "group_1794801789697",
+        "name": "Bearing PH 209",
+        "partKeys": [
+          "part_97_Solid1 336",
+          "part_99_Solid1 338",
+          "part_98_Solid1 337"
         ]
       }
     ]
