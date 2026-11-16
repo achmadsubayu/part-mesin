@@ -1,11 +1,12 @@
 {
-  "updatedAt": "2026-11-16T02:03:25.107Z",
+  "updatedAt": "2026-11-16T02:06:24.874Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
       "part_117_Solid1 30": "Flat Belt UK.2000x220x2 mm",
       "part_201_Solid1 41": "SHAFT JUMBO TW 406",
-      "part_200_Solid1 40": "SHAFT JUMBO TW 406"
+      "part_200_Solid1 40": "SHAFT JUMBO TW 406",
+      "part_67_Solid1 15": "TIMING BELT HTD DOUBLE SIDE 831 XH"
     }
   },
   "customGroups": {
