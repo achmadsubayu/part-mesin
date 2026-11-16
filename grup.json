@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T06:42:04.581Z",
+  "updatedAt": "2026-11-16T06:43:19.238Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -281,6 +281,16 @@
           "part_329_Solid1 365",
           "part_335_Solid1 291",
           "part_333_Solid1 289"
+        ]
+      },
+      {
+        "groupId": "group_1794811399238",
+        "name": "AIR CYLINDER SAI 63X75S",
+        "partKeys": [
+          "part_336_Solid1 292",
+          "part_337_Solid1 293",
+          "part_338_Solid1 294",
+          "part_331_Solid1 365"
         ]
       }
     ]
