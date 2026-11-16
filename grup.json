@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T03:44:47.885Z",
+  "updatedAt": "2026-11-16T03:54:33.795Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -16,7 +16,8 @@
       "part_276_Solid1 104": "LENGAN EKSENTRIK TW 406",
       "part_364_Solid1 1": "POWER FLAT BELT 980X30X3MM",
       "part_295_Solid1 269": "POWER LOCK OD=80 ID=50",
-      "part_299_Solid1 273": "POWER LOCK OD=80 ID=50"
+      "part_299_Solid1 273": "POWER LOCK OD=80 ID=50",
+      "part_273_Solid1 101": "HOLDER JOINT EKSENTRIK TW 406"
     }
   },
   "customGroups": {
