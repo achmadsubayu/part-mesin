@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-16T03:55:27.258Z",
+  "updatedAt": "2026-11-16T03:55:53.371Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -19,7 +19,8 @@
       "part_299_Solid1 273": "POWER LOCK OD=80 ID=50",
       "part_273_Solid1 101": "HOLDER JOINT EKSENTRIK TW 406",
       "part_272_Solid1 100": "HOLDER JOINT EKSENTRIK TW 406",
-      "part_270_Solid1 98": "HOLDER BODY GEAR FINGER TW 406"
+      "part_270_Solid1 98": "HOLDER BODY GEAR FINGER TW 406",
+      "part_271_Solid1 99": "HOLDER BODY GEAR FINGER TW 406"
     }
   },
   "customGroups": {
