@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-15T09:05:57.260Z",
+  "updatedAt": "2026-11-16T01:05:16.425Z",
   "customNames": {
     "TW406_keseluruhan.glb": {
       "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
@@ -68,6 +68,14 @@
           "part_187_Solid1 248",
           "part_188_Solid1 249",
           "part_199_Solid1 345"
+        ]
+      },
+      {
+        "groupId": "group_1794791116425",
+        "name": "body embos",
+        "partKeys": [
+          "part_1_Solid1 2",
+          "part_2_Solid1 3"
         ]
       }
     ]
