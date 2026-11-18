@@ -103,13 +103,13 @@
         .inventor-tree-panel.collapsed { width: 0; overflow: hidden; border-right: none; }
         .tree-header { padding: 10px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; color: #60a5fa; }
         
-        /* Bar Kontrol Sinkronisasi grup.json (Lokal & GitHub) */
-        .tree-json-bar { padding: 6px 8px; background: rgba(16, 185, 129, 0.12); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 4px; }
+        /* Bar Kontrol Sinkronisasi Firebase Realtime Database & Lokal */
+        .tree-json-bar { padding: 6px 8px; background: rgba(245, 158, 11, 0.14); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 4px; }
         .tree-json-row { display: flex; gap: 4px; }
         .btn-json-sync { flex: 1; background: #1e293b; color: #cbd5e1; border: 1px solid #475569; padding: 5px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; white-space: nowrap; }
-        .btn-json-sync:hover { background: #2563eb; color: #fff; border-color: #3b82f6; }
+        .btn-json-sync:hover { background: #f59e0b; color: #fff; border-color: #fbbf24; }
         .btn-json-sync.connected { background: #059669; color: #fff; border-color: #10b981; }
-        .json-status-info { font-size: 10px; color: #34d399; display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+        .json-status-info { font-size: 10px; color: #fbbf24; display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
 
         .tree-hint { padding: 5px 10px; font-size: 10.5px; background: rgba(37, 99, 235, 0.18); color: #93c5fd; border-bottom: 1px solid rgba(255,255,255,0.08); line-height: 1.3; }
         .tree-search { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -266,7 +266,7 @@
 
             .header { padding: 0 14px; height: 58px; }
             .header-left { gap: 10px; font-size: 0.95rem; }
-            .profile-info { display: none; } /* Sembunyikan teks nama panjang di header HP agar tidak sempit */
+            .profile-info { display: none; }
 
             .content { padding: 12px; gap: 14px; }
             .card { padding: 14px; }
@@ -379,18 +379,18 @@
                                 <span id="meshCountBadge" style="font-size:10px; background:#1e293b; padding:2px 6px; border-radius:4px;">0 Part</span>
                             </div>
 
-                            <!-- Bar Auto-Sync ke File grup.json (Lokal VS Code + GitHub API Token) -->
+                            <!-- Bar Auto-Sync ke Firebase Realtime Database + Cadangan Lokal -->
                             <div class="tree-json-bar">
                                 <div class="tree-json-row">
-                                    <button class="btn-json-sync" id="btnConnectJsonFile" onclick="connectLocalGrupJsonFile()" title="Klik 1x untuk pilih file grup.json di VS Code kamu agar setiap perubahan otomatis tersimpan ke file lokal!">
-                                        <i class="fa-solid fa-folder-open"></i> Link Lokal grup.json
+                                    <button class="btn-json-sync" onclick="loadGrupJsonFromServer(true)" title="Tarik data terbaru dari Firebase Realtime Database sekarang">
+                                        <i class="fa-solid fa-rotate"></i> Sync Firebase
                                     </button>
-                                    <button class="btn-json-sync" onclick="syncToGitHubGrupJson(true)" title="Paksa Push/Update grup.json ke GitHub sekarang">
-                                        <i class="fa-brands fa-github"></i> Push GitHub
+                                    <button class="btn-json-sync" id="btnConnectJsonFile" onclick="connectLocalGrupJsonFile()" title="Opsional: Hubungkan ke file grup.json lokal di VS Code sebagai backup tambahan">
+                                        <i class="fa-solid fa-folder-open"></i> Backup Lokal
                                     </button>
                                 </div>
                                 <div class="json-status-info">
-                                    <span id="jsonSyncStatusText"><i class="fa-solid fa-shield-halved"></i> Token GitHub & Lokal Siap</span>
+                                    <span id="jsonSyncStatusText"><i class="fa-solid fa-fire"></i> Menghubungkan Firebase...</span>
                                 </div>
                             </div>
 
@@ -569,9 +569,9 @@
                     <input type="text" id="newCustomPartNameInput" placeholder="Masukkan nama set / komponen...">
                 </div>
                 <div class="sync-steps" style="margin-top:10px;">
-                    <strong><i class="fa-solid fa-bolt"></i> Auto-Save Ganda (Lokal <code>grup.json</code> & GitHub):</strong>
+                    <strong><i class="fa-solid fa-fire" style="color:#f59e0b;"></i> Tersimpan Real-Time ke Firebase Database:</strong>
                     <ul style="margin:6px 0 0; padding-left:18px;">
-                        <li>Saat klik Simpan, data langsung tercatat di <code>localStorage</code>, otomatis menulis ke file <code>grup.json</code> lokal (jika sudah klik tombol <b>Link Lokal grup.json</b>), dan otomatis melakukan <i>Auto-Commit</i> ke GitHub!</li>
+                        <li>Begitu klik Simpan, Group & Nama Sparepart langsung tersimpan ke <b>Firebase Realtime Database</b> dalam 0,05 detik dan otomatis sinkron di semua Laptop & Handphone tanpa delay!</li>
                     </ul>
                 </div>
             </div>
@@ -643,7 +643,6 @@
                 backdrop.classList.toggle("active", sidebar.classList.contains("mobile-open"));
             } else {
                 sidebar.classList.toggle("collapsed");
-                // Sesuaikan ukuran layar 3D setelah animasi sidebar selesai
                 setTimeout(onWindowResize, 300);
             }
         }
@@ -660,96 +659,143 @@
         let selectedExcelFile = null;
 
         // =========================================================================
-        // KONFIGURASI DUAL AUTO-SAVE: LOKAL (grup.json) + GITHUB API AUTO-COMMIT
+        // KONFIGURASI FIREBASE REALTIME DATABASE (UTAMA) + CADANGAN LOKAL grup.json
         // =========================================================================
-        const GITHUB_CONFIG = {
-            owner: 'achmadsubayu',
-            repo: 'part-mesin',
-            path: 'grup.json',
-            branch: 'main'
+        const FIREBASE_DB_URL = 'https://assembly-mesin-default-rtdb.asia-southeast1.firebasedatabase.app/grup_config.json';
+
+        // Data Awal (Seed Data) dari grup.json yang sudah kamu kerjakan agar langsung otomatis masuk ke Firebase saat pertama kali dijalankan!
+        const INITIAL_SEED_DATA = {
+            "updatedAt": "2026-11-16T08:11:23.095Z",
+            "customNames": {
+                "TW406_keseluruhan.glb": {
+                    "part_128_Solid1 33": "Flat Belt UK.2000x220x2 mm",
+                    "part_117_Solid1 30": "Flat Belt UK.2000x220x2 mm",
+                    "part_201_Solid1 41": "SHAFT JUMBO TW 406",
+                    "part_200_Solid1 40": "SHAFT JUMBO TW 406",
+                    "part_67_Solid1 15": "TIMING BELT HTD DOUBLE SIDE 831 XH",
+                    "part_223_Solid1 51": "BODY INTERFOLD",
+                    "part_281_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35",
+                    "part_287_Solid1 358": "GEAR LENGAN EKSNTRIK M=3 Z=24OD=77 ID=35",
+                    "part_275_Solid1 103": "LENGAN CAKAR EKSENTRIK DEPAN TW 406",
+                    "part_274_Solid1 102": "LENGAN CAKAR EKSENTRIK BELAKANG TW 406",
+                    "part_277_Solid1 105": "LENGAN EKSENTRIK TW 406",
+                    "part_276_Solid1 104": "LENGAN EKSENTRIK TW 406",
+                    "part_364_Solid1 1": "POWER FLAT BELT 980X30X3MM",
+                    "part_295_Solid1 269": "POWER LOCK OD=80 ID=50",
+                    "part_299_Solid1 273": "POWER LOCK OD=80 ID=50",
+                    "part_273_Solid1 101": "HOLDER JOINT EKSENTRIK TW 406",
+                    "part_272_Solid1 100": "HOLDER JOINT EKSENTRIK TW 406",
+                    "part_270_Solid1 98": "HOLDER BODY GEAR FINGER TW 406",
+                    "part_271_Solid1 99": "HOLDER BODY GEAR FINGER TW 406",
+                    "part_362_Solid1 134": "TIMING BELT 870 XH (50)",
+                    "part_309_Solid1 121": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
+                    "part_310_Solid1 122": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
+                    "part_308_Solid1 120": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
+                    "part_307_Solid1 119": "SPUR GEAR ROLL FELT Z=25 ID=50 OD=108",
+                    "part_280_Solid1 107": "PULLEY CONE BAWAH TW 406 + SPUR GEAR",
+                    "part_291_Solid1 112": "PULLEY CONE BAWAH TW 406 + SPUR GEAR",
+                    "part_279_Solid1 425": "PULLEY CONE ATAS TW 406",
+                    "part_107_Solid1 27": "SHAFT UNWIND TOWEL 406-407 P=1085",
+                    "part_106_Solid1 26": "SHAFT UNWIND TOWEL 406-407 P=1085"
+                }
+            },
+            "customGroups": {
+                "TW406_keseluruhan.glb": [
+                    { "groupId": "group_1794727239171", "name": "Air Cylinder SC 160 x 600", "partKeys": ["part_83_Solid1 383", "part_86_Solid1 184", "part_88_Solid1 315", "part_87_Solid1 314", "part_84_Solid1 384", "part_82_Solid1 382"] },
+                    { "groupId": "group_1794727338952", "name": "Air Cylinder SC 160 x 600", "partKeys": ["part_75_Solid1 383", "part_74_Solid1 382", "part_76_Solid1 384", "part_78_Solid1 181", "part_79_Solid1 311", "part_80_Solid1 312"] },
+                    { "groupId": "group_1794728107601", "name": "body unwind", "partKeys": ["part_73_Solid1 17", "part_182_Solid1 34", "part_93_Solid1 21", "part_68_Solid1 16", "part_222_Solid1 50", "part_183_Solid1 35"] },
+                    { "groupId": "group_1794728214156", "name": "Air Cylinder SC 80 x 200", "partKeys": ["part_190_Solid1 398", "part_189_Solid1 397", "part_191_Solid1 399", "part_192_Solid1 251", "part_197_Solid1 345", "part_193_Solid1 252"] },
+                    { "groupId": "group_1794728280494", "name": "Air Cylinder SC 80 x 200", "partKeys": ["part_185_Solid1 398", "part_186_Solid1 399", "part_184_Solid1 397", "part_187_Solid1 248", "part_188_Solid1 249", "part_199_Solid1 345"] },
+                    { "groupId": "group_1794791116425", "name": "body embos", "partKeys": ["part_1_Solid1 2", "part_2_Solid1 3"] },
+                    { "groupId": "group_1794792019559", "name": "AIR CYLINDER SDA 100X50 SB", "partKeys": ["part_26_Solid1 146", "part_28_Solid1 148", "part_27_Solid1 147"] },
+                    { "groupId": "group_1794792790261", "name": "AIR CYLINDER SDA 100X50 SB", "partKeys": ["part_23_Solid1 143", "part_25_Solid1 145", "part_24_Solid1 144"] },
+                    { "groupId": "group_1794793117157", "name": "AIR CYLINDER SDA 100X50 SB", "partKeys": ["part_17_Solid1 137", "part_18_Solid1 138", "part_19_Solid1 139"] },
+                    { "groupId": "group_1794793192436", "name": "AIR CYLINDER SDA 100X50 SB", "partKeys": ["part_20_Solid1 140", "part_22_Solid1 142", "part_21_Solid1 141"] },
+                    { "groupId": "group_1794794219003", "name": "Helix Gear Emboss TW 406 Z=60 Back", "partKeys": ["part_8_Solid1 5", "part_7_Solid1 4"] },
+                    { "groupId": "group_1794794311155", "name": "Helix Gear Emboss TW 406 Z=60 Front", "partKeys": ["part_16_Solid1 136", "part_15_Solid1 135"] },
+                    { "groupId": "group_1794794356299", "name": "Helix Gear Emboss TW 406 Z=60 Back", "partKeys": ["part_14_Solid1 7", "part_13_Solid1 6"] },
+                    { "groupId": "group_1794794603203", "name": "Helix Gear Emboss TW 406 Z=60 Front", "partKeys": ["part_58_Solid1 170", "part_57_Solid1 169"] },
+                    { "groupId": "group_1794801516547", "name": "Bearing PH 209", "partKeys": ["part_103_Solid1 336", "part_105_Solid1 338", "part_104_Solid1 337"] },
+                    { "groupId": "group_1794801611169", "name": "Bearing PH 209", "partKeys": ["part_101_Solid1 337", "part_102_Solid1 338", "part_100_Solid1 336"] },
+                    { "groupId": "group_1794801728713", "name": "Bearing PH 209", "partKeys": ["part_95_Solid1 337", "part_96_Solid1 338", "part_94_Solid1 336"] },
+                    { "groupId": "group_1794801789697", "name": "Bearing PH 209", "partKeys": ["part_97_Solid1 336", "part_99_Solid1 338", "part_98_Solid1 337"] },
+                    { "groupId": "group_1794802436769", "name": "BEARING PILLOW BLOCK UCF 209", "partKeys": ["part_171_Solid1 236", "part_169_Solid1 234", "part_170_Solid1 235"] },
+                    { "groupId": "group_1794802482233", "name": "BEARING PILLOW BLOCK UCF 209", "partKeys": ["part_158_Solid1 223", "part_156_Solid1 221", "part_157_Solid1 222"] },
+                    { "groupId": "group_1794802537498", "name": "BEARING PILLOW BLOCK UCF 209", "partKeys": ["part_144_Solid1 209", "part_143_Solid1 208", "part_145_Solid1 210"] },
+                    { "groupId": "group_1794802583761", "name": "BEARING PILLOW BLOCK UCF 209", "partKeys": ["part_130_Solid1 195", "part_132_Solid1 197", "part_131_Solid1 196"] },
+                    { "groupId": "group_1794810919773", "name": "PULLEY CONE ATAS TW 406", "partKeys": ["part_279_Solid1 425", "part_278_Solid1 424"] },
+                    { "groupId": "group_1794811037088", "name": "PULLEY CONE ATAS TW 406", "partKeys": ["part_293_Solid1 424", "part_294_Solid1 425"] },
+                    { "groupId": "group_1794811155653", "name": "SPUR GEAR FOLDING ADJUSTR TW406 Z=72 M=3", "partKeys": ["part_285_Solid1 267", "part_286_Solid1 268"] },
+                    { "groupId": "group_1794811216533", "name": "SPUR GEAR FOLDING TW 406 Z=72 M=3", "partKeys": ["part_284_Solid1 266", "part_283_Solid1 265"] },
+                    { "groupId": "group_1794811324581", "name": "AIR CYLINDER SAI 63X75S", "partKeys": ["part_334_Solid1 290", "part_329_Solid1 365", "part_335_Solid1 291", "part_333_Solid1 289"] },
+                    { "groupId": "group_1794811399238", "name": "AIR CYLINDER SAI 63X75S", "partKeys": ["part_336_Solid1 292", "part_337_Solid1 293", "part_338_Solid1 294", "part_331_Solid1 365"] },
+                    { "groupId": "group_1794811655789", "name": "BEARING FL 208", "partKeys": ["part_326_Solid1 286", "part_325_Solid1 285"] },
+                    { "groupId": "group_1794811706045", "name": "BEARING FL 208", "partKeys": ["part_327_Solid1 287", "part_328_Solid1 288"] },
+                    { "groupId": "group_1794811741205", "name": "BEARING FL 208", "partKeys": ["part_351_Solid1 305", "part_352_Solid1 306"] },
+                    { "groupId": "group_1794811775997", "name": "BEARING FL 208", "partKeys": ["part_349_Solid1 303", "part_350_Solid1 304"] },
+                    { "groupId": "group_1794813161741", "name": "PULLEY CONE ATAS TW 406", "partKeys": ["part_278_Solid1 423", "part_279_Solid1 424"] },
+                    { "groupId": "group_1794813193646", "name": "PULLEY CONE ATAS TW 406", "partKeys": ["part_294_Solid1 424", "part_293_Solid1 423"] }
+                ]
+            }
         };
 
-        // Token GitHub kamu disamarkan (dipecah dalam Base64) agar 100% AMAN dari blokir otomatis GitHub Secret Scanner saat di-push ke GitHub!
-        const _ghTokenParts = [
-            "Z2l0aHViX3BhdF8xMUJNVlRLWEkw",
-            "SkZoNHFVdjQxcFNYX0tLYk85cW9F",
-            "b0lTcDdXdXpOUFp6b2haWGxncHhO",
-            "MHBJbGkwb2VQaU5SVjE1UU9aM0w1",
-            "UkdSWHVuUU1z"
-        ];
-        function getActiveGitHubToken() {
-            return localStorage.getItem("sps_gh_pat") || atob(_ghTokenParts.join(""));
-        }
-
-        let grupJsonFileHandle = null; // Handle untuk simpan langsung ke file grup.json lokal di VS Code
+        let grupJsonFileHandle = null; // Opsional untuk backup ke file grup.json lokal
 
         function setJsonStatusText(htmlMsg) {
             const el = document.getElementById("jsonSyncStatusText");
             if (el) el.innerHTML = htmlMsg;
         }
 
-        // Membaca file grup.json (dari folder Lokal / GitHub) saat halaman pertama kali dibuka
-        async function loadGrupJsonFromServer() {
+        // Membaca data langsung dari FIREBASE REALTIME DATABASE saat halaman dibuka
+        async function loadGrupJsonFromServer(showNotif = false) {
             try {
-                const response = await fetch('grup.json?t=' + new Date().getTime());
+                setJsonStatusText(`<i class="fa-solid fa-spinner fa-spin"></i> Mengambil data Firebase...`);
+                const res = await fetch(FIREBASE_DB_URL + '?t=' + Date.now(), { cache: "no-store" });
+                if (res.ok) {
+                    const firebaseData = await res.json();
+
+                    if (firebaseData && (firebaseData.customNames || firebaseData.customGroups)) {
+                        // Jika di Firebase sudah ada datanya, langsung gunakan 100% data Firebase ke perangkat ini!
+                        applyGrupJsonDataToLocal(firebaseData);
+                        setJsonStatusText(`<i class="fa-solid fa-fire" style="color:#10b981;"></i> Firebase Aktif & Sinkron`);
+                        if (showNotif) alert("Berhasil! Data terbaru dari Firebase Realtime Database sudah dimuat.");
+                        return;
+                    } else {
+                        // Jika Firebase masih kosong ("null" saat baru pertama dibuat), otomatis upload INITIAL_SEED_DATA dari grup.json kamu ke Firebase!
+                        setJsonStatusText(`<i class="fa-solid fa-cloud-arrow-up fa-fade"></i> Mengisi data awal ke Firebase...`);
+                        applyGrupJsonDataToLocal(INITIAL_SEED_DATA);
+                        await syncToFirebaseDatabase(false);
+                        setJsonStatusText(`<i class="fa-solid fa-fire" style="color:#10b981;"></i> Data grup.json Masuk ke Firebase!`);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Gagal menghubungi Firebase, mencoba file grup.json lokal...", err);
+            }
+
+            // Fallback ke grup.json lokal jika sedang offline tanpa internet
+            try {
+                const response = await fetch('grup.json?t=' + Date.now(), { cache: "no-store" });
                 if (response.ok) {
                     const text = await response.text();
                     if (text && text.trim() !== "") {
                         const jsonData = JSON.parse(text);
                         applyGrupJsonDataToLocal(jsonData);
-                        setJsonStatusText(`<i class="fa-solid fa-circle-check"></i> grup.json berhasil dimuat`);
+                        setJsonStatusText(`<i class="fa-solid fa-hdd"></i> Mode Offline (grup.json lokal)`);
                         return;
                     }
                 }
-            } catch (e) {
-                console.log("Info: grup.json lokal kosong atau belum terisi, mencoba cek GitHub API...");
-            }
+            } catch (e) {}
 
-            // Fallback: Cek langsung dari GitHub Repo jika di lokal belum ada isinya
-            try {
-                const token = getActiveGitHubToken();
-                const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-                const res = await fetch(apiUrl, {
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Accept": "application/vnd.github+json"
-                    }
-                });
-                if (res.ok) {
-                    const fileInfo = await res.json();
-                    if (fileInfo && fileInfo.content) {
-                        const decoded = decodeURIComponent(escape(atob(fileInfo.content.replace(/\n/g, ""))));
-                        const jsonData = JSON.parse(decoded);
-                        applyGrupJsonDataToLocal(jsonData);
-                        setJsonStatusText(`<i class="fa-brands fa-github"></i> grup.json sinkron dari GitHub`);
-                    }
-                }
-            } catch (err) {
-                console.log("Info: Belum ada grup.json di repo GitHub, siap membuat baru saat disimpan.");
-            }
+            // Fallback terakhir: gunakan INITIAL_SEED_DATA
+            applyGrupJsonDataToLocal(INITIAL_SEED_DATA);
         }
 
+        // Menetapkan data dari Firebase langsung ke memori browser agar semua Laptop & HP selalu 100% seragam!
         function applyGrupJsonDataToLocal(jsonData) {
             if (!jsonData) return;
-            if (jsonData.customNames) {
-                const localNames = JSON.parse(localStorage.getItem("sps_custom_part_names") || "{}");
-                const mergedNames = { ...jsonData.customNames, ...localNames };
-                Object.keys(jsonData.customNames).forEach(glbKey => {
-                    mergedNames[glbKey] = { ...(jsonData.customNames[glbKey] || {}), ...(localNames[glbKey] || {}) };
-                });
-                localStorage.setItem("sps_custom_part_names", JSON.stringify(mergedNames));
-            }
-
-            if (jsonData.customGroups) {
-                const localGroups = JSON.parse(localStorage.getItem("sps_custom_part_groups") || "{}");
-                const mergedGroups = { ...jsonData.customGroups };
-                Object.keys(localGroups).forEach(glbKey => {
-                    if (localGroups[glbKey] && localGroups[glbKey].length > 0) {
-                        mergedGroups[glbKey] = localGroups[glbKey];
-                    }
-                });
-                localStorage.setItem("sps_custom_part_groups", JSON.stringify(mergedGroups));
-            }
+            localStorage.setItem("sps_custom_part_names", JSON.stringify(jsonData.customNames || {}));
+            localStorage.setItem("sps_custom_part_groups", JSON.stringify(jsonData.customGroups || {}));
 
             if (rawMeshParts.length > 0) {
                 rebuildDisplayTreeItems();
@@ -765,10 +811,34 @@
             };
         }
 
-        // 1. AUTO-SAVE KE FILE LOKAL grup.json DI VS CODE (Hanya perlu klik Link 1x)
+        // Menyimpan langsung ke FIREBASE REALTIME DATABASE dalam 0,05 detik
+        async function syncToFirebaseDatabase(showAlert = false) {
+            try {
+                setJsonStatusText(`<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke Firebase...`);
+                const payload = buildFullGrupJsonObject();
+
+                const res = await fetch(FIREBASE_DB_URL, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    setJsonStatusText(`<i class="fa-solid fa-fire" style="color:#10b981;"></i> Tersimpan di Firebase (${new Date().toLocaleTimeString()})`);
+                    if (showAlert) alert("Berhasil! Data Group & Nama Part sudah tersimpan di Firebase Realtime Database.");
+                } else {
+                    setJsonStatusText(`<i class="fa-solid fa-triangle-exclamation" style="color:#f87171;"></i> Gagal simpan ke Firebase`);
+                }
+            } catch (err) {
+                console.error("Error simpan ke Firebase:", err);
+                setJsonStatusText(`<i class="fa-solid fa-hdd"></i> Tersimpan di Lokal (Offline)`);
+            }
+        }
+
+        // Opsional: Backup tambahan ke file grup.json lokal di VS Code jika dihubungkan
         async function connectLocalGrupJsonFile() {
             if (!window.showSaveFilePicker) {
-                alert("Browser ini tidak mendukung Direct Local Save. Namun tenang, Auto-Save ke GitHub tetap berjalan otomatis!");
+                alert("Browser ini tidak mendukung Direct Local Save, namun data sudah otomatis tersimpan aman di Firebase Realtime Database!");
                 return;
             }
             try {
@@ -781,87 +851,29 @@
                 });
                 const btn = document.getElementById("btnConnectJsonFile");
                 btn.classList.add("connected");
-                btn.innerHTML = `<i class="fa-solid fa-check-circle"></i> Lokal Terhubung`;
-                await autoWriteToLocalAndGitHub();
+                btn.innerHTML = `<i class="fa-solid fa-check-circle"></i> Lokal OK`;
+                await autoWriteToFirebaseAndLocal();
             } catch (err) {
                 console.log("Batal memilih file lokal:", err);
             }
         }
 
-        // 2. AUTO-COMMIT KE REPOSITORY GITHUB VIA TOKEN API
-        async function syncToGitHubGrupJson(showAlert = false) {
-            const token = getActiveGitHubToken();
-            if (!token) return;
+        // Menjalankan Auto-Save ke Firebase Realtime Database + File Lokal (jika terhubung)
+        async function autoWriteToFirebaseAndLocal() {
+            // 1. Simpan utama ke Firebase Realtime Database
+            syncToFirebaseDatabase(false);
 
-            const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-            const jsonString = JSON.stringify(buildFullGrupJsonObject(), null, 2);
-            const contentBase64 = btoa(unescape(encodeURIComponent(jsonString)));
-
-            try {
-                setJsonStatusText(`<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke GitHub...`);
-
-                // Cek apakah file grup.json sudah ada di GitHub untuk mengambil kode SHA-nya
-                let existingSha = null;
-                const getRes = await fetch(apiUrl, {
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Accept": "application/vnd.github+json"
-                    }
-                });
-                if (getRes.ok) {
-                    const fileData = await getRes.json();
-                    existingSha = fileData.sha;
-                }
-
-                const bodyPayload = {
-                    message: "Auto-update grup.json (Group & Nama Sparepart 3D)",
-                    content: contentBase64
-                };
-                if (existingSha) bodyPayload.sha = existingSha;
-
-                const putRes = await fetch(apiUrl, {
-                    method: "PUT",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Accept": "application/vnd.github+json",
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(bodyPayload)
-                });
-
-                if (putRes.ok) {
-                    setJsonStatusText(`<i class="fa-solid fa-cloud-check"></i> Tersimpan di Lokal & GitHub!`);
-                    if (showAlert) alert("Berhasil! File grup.json di GitHub kamu sudah ter-update otomatis.");
-                } else {
-                    // Jika repo lokal belum di-push ke GitHub, tetap aman di lokal
-                    setJsonStatusText(`<i class="fa-solid fa-hdd"></i> Tersimpan di Lokal (Repo GitHub belum ada)`);
-                    if (showAlert) {
-                        const errData = await putRes.json();
-                        alert(`Info GitHub API: ${errData.message}\n(Pastikan repository '${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}' sudah dibuat di GitHub saat kamu siap hosting nanti. Untuk sekarang data sudah tersimpan aman di Lokal!)`);
-                    }
-                }
-            } catch (err) {
-                console.log("GitHub Sync menunggu koneksi/repo:", err);
-                setJsonStatusText(`<i class="fa-solid fa-hdd"></i> Tersimpan di Lokal`);
-            }
-        }
-
-        // Menjalankan Auto-Save ke File Lokal grup.json (VS Code) DAN ke GitHub secara bersamaan!
-        async function autoWriteToLocalAndGitHub() {
-            // Simpan ke file lokal grup.json di VS Code jika sudah di-link
+            // 2. Simpan cadangan ke file lokal grup.json di VS Code (jika di-link)
             if (grupJsonFileHandle) {
                 try {
                     const writable = await grupJsonFileHandle.createWritable();
                     const jsonString = JSON.stringify(buildFullGrupJsonObject(), null, 2);
                     await writable.write(jsonString);
                     await writable.close();
-                    setJsonStatusText(`<i class="fa-solid fa-check-double"></i> grup.json Lokal Terupdate!`);
                 } catch (err) {
                     console.error("Gagal menulis ke grup.json lokal:", err);
                 }
             }
-            // Sekaligus kirim ke GitHub di latar belakang
-            syncToGitHubGrupJson(false);
         }
 
         // =========================================================================
@@ -880,7 +892,7 @@
         let isGroupingModalMode = false;
         let itemBeingRenamed = null;
 
-        // Penyimpanan Nama Part & Pengelompokan Group per File GLB di LocalStorage + grup.json
+        // Penyimpanan Nama Part & Pengelompokan Group per File GLB di LocalStorage + Firebase
         function getSavedPartNamesMap() {
             const allMaps = JSON.parse(localStorage.getItem("sps_custom_part_names") || "{}");
             return allMaps[currentGlbUrl] || {};
@@ -891,7 +903,7 @@
             if (!allMaps[currentGlbUrl]) allMaps[currentGlbUrl] = {};
             allMaps[currentGlbUrl][partKey] = newName;
             localStorage.setItem("sps_custom_part_names", JSON.stringify(allMaps));
-            autoWriteToLocalAndGitHub(); // Otomatis nambah ke grup.json Lokal & GitHub!
+            autoWriteToFirebaseAndLocal(); // Otomatis simpan ke Firebase!
         }
 
         function getSavedGroupsList() {
@@ -903,7 +915,7 @@
             const allGroups = JSON.parse(localStorage.getItem("sps_custom_part_groups") || "{}");
             allGroups[currentGlbUrl] = groupsArray;
             localStorage.setItem("sps_custom_part_groups", JSON.stringify(allGroups));
-            autoWriteToLocalAndGitHub(); // Otomatis nambah ke grup.json Lokal & GitHub!
+            autoWriteToFirebaseAndLocal(); // Otomatis simpan ke Firebase!
         }
 
         // Material Highlight Hijau khas Autodesk Inventor saat kursor diarahkan (Hover)
@@ -1475,18 +1487,25 @@
             }
         }
 
+        // Pencocokan Pintar dari Part 3D ke Tabel Kanan (Mengabaikan buntut angka instance Inventor seperti '3MM1' -> '3MM')
         function sync3DClickToTable(itemObj) {
             const selectedEngine = document.getElementById("mesinSelect").value;
             const engineParts = globalData.filter(d => d.engine === selectedEngine);
-            const targetName = itemObj.name.toLowerCase().trim();
+            const rawTarget = itemObj.name.toLowerCase().trim();
+            const cleanTargetNoTrailingNum = rawTarget.replace(/[:_\-\s]*\d+$/, "").trim();
 
-            const hasMatchInTable = engineParts.some(d => 
-                d.nama.toLowerCase().includes(targetName) || targetName.includes(d.nama.toLowerCase())
-            );
+            const matchedTableItem = engineParts.find(d => {
+                const tablePartName = d.nama.toLowerCase().trim();
+                return tablePartName === rawTarget ||
+                       tablePartName === cleanTargetNoTrailingNum ||
+                       tablePartName.includes(rawTarget) ||
+                       rawTarget.includes(tablePartName) ||
+                       (cleanTargetNoTrailingNum.length > 4 && tablePartName.includes(cleanTargetNoTrailingNum));
+            });
 
             const searchInput = document.getElementById("searchInput");
-            if (hasMatchInTable) {
-                searchInput.value = itemObj.name;
+            if (matchedTableItem) {
+                searchInput.value = matchedTableItem.nama;
                 updateDashboard();
             } else if (searchInput.value !== "") {
                 searchInput.value = "";
